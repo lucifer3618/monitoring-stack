@@ -45,6 +45,7 @@ grafana:
     type: ClusterIP
   image:
     repository: "grafana/grafana"
+    tag: "13.1.0"
     pullPolicy: "IfNotPresent"
   adminUser: "admin"
   adminPassword: "admin123"

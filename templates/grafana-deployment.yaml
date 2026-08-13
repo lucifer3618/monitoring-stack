@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: grafana
-          image: "{{ .Values.grafana.image.repository | default "grafana/grafana" }}"
+          image: "{{ .Values.grafana.image.repository | default "grafana/grafana" }}:{{ .Values.grafana.image.tag | default "10.4.0" }}"
           imagePullPolicy: {{ .Values.grafana.image.pullPolicy | default "IfNotPresent" }}
           ports:
             - name: http
@@ -35,6 +35,8 @@ spec:
               value: {{ .Values.grafana.secretKey | default "monitoring-stack-secret-ha-key" | quote }}
 
             # Server Configuration
+            - name: GF_SERVER_DOMAIN
+              value: "grafana.lab.local"
             - name: GF_SERVER_ROOT_URL
               value: "http://grafana.lab.local/"
             - name: GF_SERVER_SERVE_FROM_SUB_PATH
@@ -47,6 +49,10 @@ spec:
               value: "false"
             - name: GF_FEATURE_TOGGLES_ENABLE
               value: ""
+
+            # Live WebSocket Settings
+            - name: GF_LIVE_ALLOWED_ORIGINS
+              value: "*"
             
             # Database Configuration (Connects to CloudNativePG RW Service)
             - name: GF_DATABASE_TYPE
