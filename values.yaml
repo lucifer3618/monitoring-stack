@@ -1,0 +1,62 @@
+loki:
+  replicas: 3
+  serviceName: "loki"
+  servicePort: 3100
+  image:
+    tag: "3.0.0"
+  s3:
+    endpoint: "192.168.8.196:9000"
+    bucketName: "loki-data"
+    accessKeyId: "admin"
+    secretAccessKey: "60241594"
+  pvc:
+    storageClassName: "local-path"
+    size: "5Gi"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  service:
+    type: LoadBalancer
+    loadBalancerIP: "192.168.8.221"
+
+database:
+  clusterName: "grafana-db-cluster"
+  name: "grafana"
+  user: "grafana"
+  password: "grafanadbpassword123"
+  instances: 3
+  storageSize: "5Gi"
+  storageClassName: "local-path"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+  affinityType: "preferred" 
+
+grafana:
+  replicas: 1
+  service:
+    type: ClusterIP
+  image:
+    repository: "grafana/grafana"
+    pullPolicy: "IfNotPresent"
+  adminUser: "admin"
+  adminPassword: "admin123"
+  database:
+    type: "postgres"
+    sslMode: "disable"
+  ingress:
+    host: "grafana.lab.local"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"

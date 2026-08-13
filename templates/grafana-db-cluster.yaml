@@ -1,0 +1,38 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ .Values.database.clusterName | default "grafana-db-cluster" }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: grafana-db
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  # Total database instances (1 Primary + 2 Standby Replicas)
+  instances: {{ .Values.database.instances | default 3 }}
+
+  # Spread database pods across different k3s worker nodes for fault tolerance
+  affinity:
+    enablePodAntiAffinity: true
+    podAntiAffinityType: preferred
+
+  # Bootstrap database and owner credentials on initial boot
+  bootstrap:
+    initdb:
+      database: {{ .Values.database.name | default "grafana" }}
+      owner: {{ .Values.database.user | default "grafana" }}
+      secret:
+        name: {{ .Release.Name }}-grafana-db-credentials
+
+  # Storage configuration for database volumes
+  storage:
+    size: {{ .Values.database.storageSize | default "5Gi" }}
+    storageClass: {{ .Values.database.storageClassName | default "local-path" }}
+
+  # Resource bounds for each database replica pod
+  resources:
+    requests:
+      cpu: {{ .Values.database.resources.requests.cpu | default "100m" }}
+      memory: {{ .Values.database.resources.requests.memory | default "128Mi" }}
+    limits:
+      cpu: {{ .Values.database.resources.limits.cpu | default "500m" }}
+      memory: {{ .Values.database.resources.limits.memory | default "512Mi" }}					

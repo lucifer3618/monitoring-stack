@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: loki
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: loki
+spec:
+  replicas: {{ .Values.loki.replicas | default 1 }}
+  serviceName: loki-headless
+  selector:
+    matchLabels:
+      app: loki
+  template:
+    metadata:
+      labels:
+        app: loki
+    spec:
+      containers:
+        - name: loki
+          image: "grafana/loki:{{ .Values.loki.image.tag | default "3.0.0" }}"
+          imagePullPolicy: {{ .Values.loki.image.pullPolicy | default "IfNotPresent" }}
+          args:
+            - "-config.file=/etc/loki/loki.yaml"
+          ports:
+            - name: http
+              containerPort: 3100
+            - name: grpc
+              containerPort: 9095
+            - name: memberlist
+              containerPort: 7946
+          env:
+            - name: S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: loki-secret
+                  key: S3_ACCESS_KEY_ID
+            - name: S3_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: loki-secret
+                  key: S3_SECRET_ACCESS_KEY
+          volumeMounts:
+            - name: loki-config
+              mountPath: /etc/loki
+            - name: loki-storage
+              mountPath: /var/loki
+          resources:
+            requests:
+              cpu: {{ .Values.loki.resources.requests.cpu | default "100m" }}
+              memory: {{ .Values.loki.resources.requests.memory | default "128Mi" }}
+            limits:
+              cpu: {{ .Values.loki.resources.limits.cpu | default "500m" }}
+              memory: {{ .Values.loki.resources.limits.memory | default "512Mi" }}
+      volumes:
+        - name: loki-config
+          configMap:
+            name: loki-configmap
+  volumeClaimTemplates:
+    - metadata:
+        name: loki-storage
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        storageClassName: {{ .Values.loki.pvc.storageClassName | default "local-path" }}
+        resources:
+          requests:
+            storage: {{ .Values.loki.pvc.size | default "5Gi" }}
+                

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-grafana
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  type: {{ .Values.grafana.service.type | default "ClusterIP" }}
+  selector:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000

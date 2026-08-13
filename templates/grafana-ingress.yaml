@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-grafana
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  annotations:
+    # Traefik v2/v3 entrypoint declaration
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+    
+    # Correct Sticky Session annotations for Traefik v2/v3
+    traefik.ingress.kubernetes.io/service.sticky.cookie: "true"
+    traefik.ingress.kubernetes.io/service.sticky.cookie.name: "grafana_stick"
+    traefik.ingress.kubernetes.io/service.sticky.cookie.httponly: "true"
+    
+    # Request protocol forwarding
+    traefik.ingress.kubernetes.io/router.tls: "false"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: {{ .Values.grafana.ingress.host | default "grafana.lab.local" }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-grafana
+                port:
+                  number: 3000
