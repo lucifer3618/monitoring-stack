@@ -10,21 +10,20 @@ spec:
   # Total database instances (1 Primary + 2 Standby Replicas)
   instances: {{ .Values.database.instances | default 3 }}
 
-  # Adding tolerations for database failover scenarios to ensure pods can run on nodes that may be temporarily unreachable or not ready
-  tolerations:
-    - key: "node.kubernetes.io/unreachable"
-      operator: "Exists"
-      effect: "NoExecute"
-      tolerationSeconds: {{ .Values.database.tolerationSeconds | default 60 }}
-    - key: "node.kubernetes.io/not-ready"
-      operator: "Exists"
-      effect: "NoExecute"
-      tolerationSeconds: {{ .Values.database.tolerationSeconds | default 60 }}
-
   # Spread database pods across different k3s worker nodes for fault tolerance
   affinity:
     enablePodAntiAffinity: true
     podAntiAffinityType: preferred
+    # Adding tolerations for database failover scenarios to ensure pods can run on nodes that may be temporarily unreachable or not ready
+    tolerations:
+      - key: "node.kubernetes.io/unreachable"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: {{ .Values.database.tolerationSeconds | default 60 }}
+      - key: "node.kubernetes.io/not-ready"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: {{ .Values.database.tolerationSeconds | default 60 }}
 
   # Bootstrap database and owner credentials on initial boot
   bootstrap:
