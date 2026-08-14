@@ -29,6 +29,7 @@ database:
   user: "grafana"
   password: "grafanadbpassword123"
   instances: 3
+  tolerationSeconds: 60
   storageSize: "5Gi"
   storageClassName: "local-path"
   resources:
@@ -40,7 +41,7 @@ database:
   affinityType: "preferred" 
 
 grafana:
-  replicas: 1
+  replicas: 2
   service:
     type: ClusterIP
   image:
@@ -53,7 +54,7 @@ grafana:
     type: "postgres"
     sslMode: "disable"
   ingress:
-    host: "grafana.lab.local"
+    host: "grafana.home.arpa"
   resources:
     requests:
       cpu: "100m"
