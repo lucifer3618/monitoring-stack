@@ -41,7 +41,7 @@ database:
   affinityType: "preferred" 
 
 grafana:
-  replicas: 2
+  replicas: 1
   service:
     type: ClusterIP
   image:
