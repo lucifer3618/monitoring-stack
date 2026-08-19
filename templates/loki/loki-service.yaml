@@ -6,10 +6,7 @@ metadata:
   labels:
     app: loki
 spec:
-  type: {{ .Values.loki.service.type | default "ClusterIP" }}
-  {{- if .Values.loki.service.loadBalancerIP }}
-  loadBalancerIP: {{ .Values.loki.service.loadBalancerIP }}
-  {{- end }}
+  type: ClusterIP
   selector:
     app: loki
   ports:

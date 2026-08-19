@@ -16,6 +16,10 @@ spec:
       labels:
         app: loki
     spec:
+      securityContext:
+          fsGroup: 10001
+          runAsUser: 10001
+          runAsNonRoot: true
       containers:
         - name: loki
           image: "grafana/loki:{{ .Values.loki.image.tag | default '3.0.0' }}"
@@ -63,7 +67,7 @@ spec:
       spec:
         accessModes:
           - "ReadWriteOnce"
-        storageClassName: {{ .Values.loki.pvc.storageClassName | default "local-path" }}
+        storageClassName: {{ .Values.loki.pvc.storageClassName | default "longhorn" }}
         resources:
           requests:
             storage: {{ .Values.loki.pvc.size | default "5Gi" }}

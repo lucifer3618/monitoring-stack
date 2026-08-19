@@ -31,12 +31,12 @@ spec:
       database: {{ .Values.database.name | default "grafana" }}
       owner: {{ .Values.database.user | default "grafana" }}
       secret:
-        name: {{ .Release.Name }}-grafana-db-credentials
+        name: "{{ .Release.Name }}-grafana-db-credentials"
 
   # Storage configuration for database volumes
   storage:
     size: {{ .Values.database.storageSize | default "5Gi" }}
-    storageClass: {{ .Values.database.storageClassName | default "local-path" }}
+    storageClass: {{ .Values.database.storageClassName | default "longhorn" }}
 
   # Resource bounds for each database replica pod
   resources:
