@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Release.Name }}-grafana
+  name: "{{ .Release.Name }}-grafana"
   namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: grafana
@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: grafana
-          image: "{{ .Values.grafana.image.repository | default "grafana/grafana" }}:{{ .Values.grafana.image.tag | default "10.4.0" }}"
+          image: "{{ .Values.grafana.image.repository }}:{{ .Values.grafana.image.tag }}"
           imagePullPolicy: {{ .Values.grafana.image.pullPolicy | default "IfNotPresent" }}
           ports:
             - name: http
@@ -58,7 +58,7 @@ spec:
             - name: GF_DATABASE_TYPE
               value: {{ .Values.grafana.database.type | default "postgres" | quote }}
             - name: GF_DATABASE_HOST
-              value: "{{ .Values.database.clusterName | default "grafana-db-cluster" }}-rw.{{ .Release.Namespace }}.svc.cluster.local:5432"
+              value: "{{ .Values.database.clusterName }}-rw.{{ .Release.Namespace }}.svc.cluster.local:5432"
             - name: GF_DATABASE_NAME
               value: {{ .Values.database.name | default "grafana" | quote }}
             - name: GF_DATABASE_USER
@@ -88,7 +88,7 @@ spec:
       volumes:
         - name: datasources-volume
           configMap:
-            name: {{ .Release.Name }}-grafana-datasources
+            name: "{{ .Release.Name }}-grafana-datasources"
           
           
             
