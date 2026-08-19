@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: loki
-          image: "grafana/loki:{{ .Values.loki.image.tag | default '3.0.0' }}"
+          image: grafana/loki:{{ .Values.loki.image.tag | default "3.0.0" }}
           imagePullPolicy: {{ .Values.loki.image.pullPolicy | default "IfNotPresent" }}
           args:
             - "-config.file=/etc/loki/loki.yaml"
