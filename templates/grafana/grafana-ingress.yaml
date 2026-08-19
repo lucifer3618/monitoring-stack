@@ -7,18 +7,16 @@ metadata:
     app.kubernetes.io/name: grafana
     app.kubernetes.io/instance: {{ .Release.Name }}
   annotations:
-    # Traefik v2/v3 entrypoint declaration
-    traefik.ingress.kubernetes.io/router.entrypoints: web
-    
-    # Correct Sticky Session annotations for Traefik v2/v3
-    traefik.ingress.kubernetes.io/service.sticky.cookie: "true"
-    traefik.ingress.kubernetes.io/service.sticky.cookie.name: "grafana_stick"
-    traefik.ingress.kubernetes.io/service.sticky.cookie.httponly: "true"
-    
-    # Request protocol forwarding
-    traefik.ingress.kubernetes.io/router.tls: "false"
+    # Sticky Session configuration
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "grafana_stick"
+    nginx.ingress.kubernetes.io/session-cookie-path: "/"
+    nginx.ingress.kubernetes.io/session-cookie-hash: "sha1"
+
+    # Disable HTTPS redirect (equivalent to router.tls: "false")
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
-  ingressClassName: traefik
+  ingressClassName: nginx
   rules:
     - host: {{ .Values.grafana.ingress.host | default "grafana.lab.local" }}
       http:
