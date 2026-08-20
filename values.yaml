@@ -3,6 +3,8 @@ minio:
     repository: "minio/minio"
     tag: "RELEASE.2024-01-18T22-51-28Z"
   replicas: 1
+  accessKeyId: "admin"
+  secretAccessKey: "60241594"
   tolerations:
     notReady: 20
     unreachable: 20
