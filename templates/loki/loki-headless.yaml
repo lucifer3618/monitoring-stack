@@ -11,6 +11,7 @@ spec:
     selector:
         app.kubernetes.io/name: loki
         app.kubernetes.io/instance: {{ .Release.Name }}
+        publishNotReadyAddresses: true
     ports:
         - name: http
           port: 3100
