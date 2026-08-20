@@ -29,6 +29,7 @@ spec:
           imagePullPolicy: {{ .Values.loki.image.pullPolicy | default "IfNotPresent" }}
           args:
             - "-config.file=/etc/loki/loki.yaml"
+            - "-config.expand-env=true"
           ports:
             - name: http
               containerPort: 3100
