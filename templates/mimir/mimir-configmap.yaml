@@ -17,6 +17,9 @@ data:
       grpc_listen_port: 9095
       log_level: info
 
+    activity_tracker:
+      filepath: /var/mimir/metrics-activity.log
+
     # Memberlist ring for horizontal scale and node discovery
     memberlist:
       node_name: "${HOSTNAME}"

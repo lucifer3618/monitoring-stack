@@ -26,6 +26,7 @@ spec:
       containers:
         - name: mimir
           image: "grafana/mimir:{{ .Values.mimir.image.tag}}"
+          workingDir: /var/mimir
           imagePullPolicy: {{ .Values.mimir.image.pullPolicy | default "IfNotPresent" }}
           args:
             - "-config.file=/etc/mimir/mimir.yaml"
