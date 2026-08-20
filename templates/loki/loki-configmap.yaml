@@ -27,9 +27,11 @@ data:
       replication_factor: {{ .Values.loki.replicas | default 1 }}
 
     memberlist:
+      node_name: "${HOSTNAME}"
+      bind_port: 7946
       join_members:
         - "{{ .Release.Name }}-loki-headless.{{ .Release.Namespace }}.svc.cluster.local:7946"
-
+        
     schema_config:
       configs:
         - from: 2024-01-01
