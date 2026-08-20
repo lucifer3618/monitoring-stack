@@ -12,8 +12,8 @@ minio:
     notReady: 20
     unreachable: 20
   persistence:
-    size: "5Gi"
-    storageClassName: "longhorn"
+    size: "1Gi"
+    storageClassName: "longhorn-1replica"
   resources:
     requests:
       cpu: "100m"
@@ -39,8 +39,8 @@ loki:
     accessKeyId: "admin"
     secretAccessKey: "60241594"
   pvc:
-    storageClassName: "longhorn"
-    size: "5Gi"
+    storageClassName: "longhorn-1replica"
+    size: "1Gi"
   resources:
     requests:
       cpu: "100m"
@@ -69,8 +69,8 @@ mimir:
     accessKeyId: "admin"
     secretAccessKey: "60241594"
   pvc:
-    storageClassName: "longhorn"
-    size: "5Gi"
+    storageClassName: "longhorn-1replica"
+    size: "1Gi"
   resources:
     requests:
       cpu: "100m"
@@ -96,8 +96,8 @@ tempo:
     accessKeyId: "admin"
     secretAccessKey: "60241594"
   storage:
-    size: "5Gi"
-    className: "longhorn"
+    size: "1Gi"
+    className: "longhorn-1replica"
   resources:
     requests:
       cpu: "200m"
@@ -133,8 +133,8 @@ database:
   password: "grafanadbpassword123"
   instances: 3
   tolerationSeconds: 60
-  storageSize: "5Gi"
-  storageClassName: "longhorn"
+  storageSize: "1Gi"
+  storageClassName: "longhorn-1replica"
   resources:
     requests:
       cpu: "100m"
@@ -160,7 +160,7 @@ grafana:
     type: "postgres"
     sslMode: "disable"
   ingress:
-    host: "grafana.pcs.ui"
+    host: "grafana.test.pcs.ui"
   resources:
     requests:
       cpu: "100m"
