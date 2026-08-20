@@ -29,7 +29,7 @@ data:
       rule {
         action        = "keep"
         source_labels = ["__meta_kubernetes_pod_node_name"]
-        regex         = sys.env("HOSTNAME")
+        regex         = env("HOSTNAME")
       }
 
       rule {
@@ -88,6 +88,12 @@ data:
 
     discovery.relabel "pod_logs" {
       targets = discovery.kubernetes.pod_logs.targets
+
+      rule {
+        action        = "keep"
+        source_labels = ["__meta_kubernetes_pod_node_name"]
+        regex         = env("HOSTNAME")
+      }
 
       rule {
         source_labels = ["__meta_kubernetes_namespace"]

@@ -52,11 +52,13 @@ spec:
 
             # Server Configuration
             - name: GF_SERVER_DOMAIN
-              value: "{{ .Values.grafana.ingress.host | default "grafana.home.arpa" }}"
+              value: "{{ .Values.grafana.ingress.host }}"
             - name: GF_SERVER_ROOT_URL
-              value: "http://{{ .Values.grafana.ingress.host | default "grafana.home.arpa" }}/"
+              value: "http://{{ .Values.grafana.ingress.host }}/"
             - name: GF_SERVER_SERVE_FROM_SUB_PATH
               value: "false"
+            - name: GF_SESSION_PROVIDER
+              value: "database"
 
             # Disable dynamic background app installation drift across HA replicas
             - name: GF_PLUGINS_ENABLE_ALPHA
@@ -65,6 +67,8 @@ spec:
               value: "false"
             - name: GF_FEATURE_TOGGLES_ENABLE
               value: ""
+            - name: GF_FEATURE_TOGGLES_DISABLE
+              value: "traceQLStreaming"
 
             # Live WebSocket Settings
             - name: GF_LIVE_ALLOWED_ORIGINS
