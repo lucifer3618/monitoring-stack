@@ -9,7 +9,8 @@ metadata:
 spec:
     clusterIP: None
     selector:
-        app: loki
+        app.kubernetes.io/name: loki
+        app.kubernetes.io/instance: {{ .Release.Name }}
     ports:
         - name: http
           port: 3100
