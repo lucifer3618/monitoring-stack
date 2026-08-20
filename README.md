@@ -14,16 +14,16 @@ The stack is designed for a local or lab Kubernetes environment and is configure
 
 ```mermaid
 flowchart LR
-    Browser[Browser / User] --> Ingress[Traefik Ingress\nHost: grafana.lab.local]
+    Browser[Browser / User] --> Ingress[Nginx Ingress\nHost: grafana.pcs.ui]
     Ingress --> GrafanaSvc[Service: monitoring-stack-grafana\nClusterIP: 3000]
     GrafanaSvc --> GrafanaPod[Deployment: monitoring-stack-grafana\n2 replicas]
 
     GrafanaPod --> PGSvc[Service: grafana-db-cluster-rw\n5432]
     PGSvc --> PGCluster[CloudNativePG Cluster\n3 instances]
 
-    LokiPod[Loki StatefulSet\n3 replicas] --> LokiSvc[Service: loki\nLoadBalancer: 192.168.8.221:3100]
+    LokiPod[Loki StatefulSet\n3 replicas] --> LokiSvc[Service: monitoring-stack-loki\nClusterIP: 3100]
     LokiPod --> Headless[Service: loki-headless\nclusterIP: None]
-    LokiPod --> S3[(S3-compatible storage\n192.168.8.196:9000)]
+    LokiPod --> S3[(MinIO\nmonitoring-stack-minio:9000)]
 
     GrafanaPod --> Datasource[ConfigMap datasource\nLoki endpoint]
     LokiPod --> Config[ConfigMap: loki-configmap]
@@ -33,13 +33,13 @@ flowchart LR
 
 ### 1. Grafana
 
-The Grafana deployment is created from the chart and exposes a web UI through Traefik.
+The Grafana deployment is created from the chart and exposes a web UI through Nginx.
 
 - Deployment: `monitoring-stack-grafana`
 - Replicas: 2
 - Service: `monitoring-stack-grafana`
 - Port: `3000`
-- Ingress host: `grafana.lab.local`
+- Ingress host: `grafana.pcs.ui`
 - Default credentials: user `admin`, password `admin123`
 
 Grafana is configured to connect to the PostgreSQL database via the CloudNativePG RW service and the Loki datasource for logs.
@@ -53,7 +53,7 @@ A PostgreSQL cluster is created with CloudNativePG for Grafana persistence.
 - User: `grafana`
 - Secret: `monitoring-stack-grafana-db-credentials`
 - Instances: 3
-- Storage: `5Gi` using `local-path`
+- Storage: `5Gi` using `longhorn`
 
 The database is exposed internally through the generated CNPG services:
 
@@ -68,40 +68,40 @@ Loki is deployed as a StatefulSet with replication for log storage and clusterin
 - StatefulSet: `loki`
 - Replicas: 3
 - StatefulSet service name: `loki-headless`
-- LoadBalancer service: `loki`
+- Service: `monitoring-stack-loki` (ClusterIP)
 - Port: `3100` for HTTP, `9095` for gRPC
 - Memberlist port: `7946`
 
 The Loki config uses a `ConfigMap` and reads S3 credentials from a Kubernetes Secret. Loki writes data to an S3-compatible object store using the configured endpoint and bucket name.
 
-### 4. S3-compatible object storage
+### 4. MinIO object storage
 
-Loki is configured to use an S3-compatible backend for logs.
+Loki is configured to use the in-cluster MinIO service as its S3-compatible backend for logs.
 
-- Endpoint: `192.168.8.196:9000`
+- Endpoint: `monitoring-stack-minio:9000`
 - Bucket: `loki-data`
-- Credentials are stored in the `loki-secret` Secret
+- Credentials are stored in the `monitoring-stack-loki-secret` Secret
 
 This provides persistent log storage outside the pod filesystem.
 
 ### 5. Ingress and routing
 
-Grafana is exposed by Traefik through an Ingress resource.
+Grafana is exposed by Nginx through an Ingress resource.
 
 #### Route
 
 ```text
-Browser --> grafana.lab.local --> Traefik Ingress --> Service: monitoring-stack-grafana --> Grafana Pod
+Browser --> grafana.pcs.ui --> Nginx Ingress --> Service: monitoring-stack-grafana --> Grafana Pod
 ```
 
 This is configured in the chart with:
 
-- Ingress class: `traefik`
-- Host: `grafana.lab.local`
+- Ingress class: `nginx`
+- Host: `grafana.pcs.ui`
 - Path: `/`
 - Backend: `monitoring-stack-grafana:3000`
 
-Loki is exposed separately via a LoadBalancer service and is reachable on the configured IP address.
+Loki is exposed separately through its internal ClusterIP service at `monitoring-stack-loki:3100`.
 
 ## Internal service flow
 
@@ -143,9 +143,8 @@ The chart is parameterized through the root `values.yaml` file.
 Key values include:
 
 - `loki.replicas`
-- `loki.service.type`
-- `loki.service.loadBalancerIP`
-- `loki.s3.endpoint`
+- `loki.serviceName`
+- `loki.servicePort`
 - `loki.s3.bucketName`
 - `database.clusterName`
 - `database.instances`
@@ -172,8 +171,8 @@ kubectl get statefulset -n monitoring
 
 ## Notes
 
-- The Grafana app is served at `grafana.lab.local` through the Traefik ingress.
-- Loki is exposed as a separate service and does not use the same ingress path.
+- The Grafana app is served at `grafana.pcs.ui` through the Nginx ingress.
+- Loki is available internally at `monitoring-stack-loki:3100` and does not use the Grafana ingress path.
 - The database is internal to the cluster and is not exposed directly outside Kubernetes.
 - S3 credentials and database credentials are managed through Kubernetes Secrets.
 
