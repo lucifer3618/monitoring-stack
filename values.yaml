@@ -30,7 +30,7 @@ minio:
 #                        LOKI
 #----------------------------------------------------
 loki:
-  replicas: 3
+  replicas: 2
   servicePort: 3100
   image:
     tag: "3.0.0"
