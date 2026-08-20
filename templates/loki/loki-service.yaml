@@ -4,11 +4,13 @@ metadata:
   name: "{{ .Release.Name }}-loki"
   namespace: {{ .Release.Namespace }}
   labels:
-    app: loki
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
   type: ClusterIP
   selector:
-    app: loki
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: {{ .Release.Name }}
   ports:
     - name: http
       port: 3100

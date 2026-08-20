@@ -3,6 +3,9 @@ kind: ConfigMap
 metadata:
   name: "{{ .Release.Name }}-loki-config"
   namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: {{ .Release.Name }}
 data:
   loki.yaml: |
     auth_enabled: false
