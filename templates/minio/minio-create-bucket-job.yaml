@@ -39,11 +39,19 @@ spec:
             - -c
             - |
               set -eu
+              
               # Wait until MinIO API responds
-              until mc alias set myminio http://{{ .Release.Name }}-minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; do
-                echo "Waiting for MinIO S3 API..."
+              until mc alias set myminio http://{{ .Release.Name }}-minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null 2>&1; do
+                echo "Waiting for MinIO S3 API to be ready..."
                 sleep 2
               done
-              # Create bucket if it does not already exist
+
+              echo "MinIO is ready. Creating buckets..."
+
+              # 1. Loki Storage Bucket
               mc mb --ignore-existing myminio/{{ .Values.loki.s3.bucketName | default "loki-data" }}
-              echo "Bucket initialization complete."
+              
+              # 2. Mimir Storage Bucket
+              mc mb --ignore-existing myminio/{{ .Values.mimir.s3.bucketName | default "mimir-data" }}
+
+              echo "Bucket initialization complete for Loki and Mimir."
