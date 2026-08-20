@@ -8,10 +8,10 @@ metadata:
         app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
     clusterIP: None
+    publishNotReadyAddresses: true
     selector:
         app.kubernetes.io/name: tempo
         app.kubernetes.io/instance: {{ .Release.Name }}
-        publishNotReadyAddresses: true
     ports:
       - name: http
         port: {{ .Values.tempo.servicePort | default "3200" }}
