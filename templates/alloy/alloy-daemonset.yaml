@@ -27,6 +27,11 @@ spec:
             - "/etc/alloy/config.alloy"
             - "--server.http.listen-addr=0.0.0.0:12345"
             - "--storage.path=/var/lib/alloy/data"
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           ports:
             - name: http-internal
               containerPort: 12345

@@ -28,6 +28,12 @@ data:
 
       rule {
         action        = "keep"
+        source_labels = ["__meta_kubernetes_pod_node_name"]
+        regex         = sys.env("HOSTNAME")
+      }
+
+      rule {
+        action        = "keep"
         source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_scrape"]
         regex         = "true"
       }
