@@ -1,5 +1,163 @@
 # Monitoring Stack
 
+This Helm chart deploys a lab-oriented observability stack for Kubernetes:
+- Grafana for dashboards and visualization
+- Mimir for metrics storage
+- Loki for logs
+- Tempo for distributed traces
+- Alloy as a node-level telemetry collector
+- MinIO as S3-compatible storage for Mimir, Loki, and Tempo
+- CloudNativePG for Grafana's PostgreSQL database
+
+The chart uses Nginx Ingress and Longhorn storage. It creates a CloudNativePG
+`Cluster` resource, but it does not install the CloudNativePG operator.
+
+## Prerequisites
+The target cluster must already provide:
+
+- Helm and Kubernetes access
+- An Nginx Ingress Controller
+- A `longhorn` StorageClass, or matching storage class overrides
+- The CloudNativePG operator and CRDs
+
+For local access, resolve the configured hosts to the Ingress address:
+```text
+grafana.pcs.ui
+minio.pcs.ui
+```
+
+The default credentials in `values.yaml` are for local or lab use only. Override
+all passwords and access keys before using this chart in a shared environment.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  Client[Applications] --> Alloy[Alloy DaemonSet]
+  Alloy --> Mimir[Mimir metrics]
+  Alloy --> Loki[Loki logs]
+  Alloy --> Tempo[Tempo traces]
+  Mimir --> MinIO[MinIO S3]
+  Loki --> MinIO
+  Tempo --> MinIO
+  Browser[Browser] --> Nginx[Nginx Ingress]
+  Nginx --> Grafana[Grafana]
+  Grafana --> Mimir
+  Grafana --> Loki
+  Grafana --> Tempo
+  Grafana --> CNPG[CloudNativePG PostgreSQL]
+```
+
+## Components and defaults
+
+| Component | Kubernetes resource | Default replicas | Internal ports |
+| --- | --- | ---: | --- |
+| Grafana | Deployment | 1 | `3000` |
+| Mimir | StatefulSet | 2 | `9009` |
+| Loki | StatefulSet | 3 | `3100`, `9095` |
+| Tempo | StatefulSet | 2 | `3200`, `4317`, `4318` |
+| Alloy | DaemonSet | One per node | `12345`, `4317`, `4318` |
+| MinIO | StatefulSet | 1 | `9000`, `9001` |
+| PostgreSQL | CloudNativePG Cluster | 3 | `5432` |
+
+All component service names are release-scoped:
+
+```text
+<release>-grafana
+<release>-mimir
+<release>-loki
+<release>-tempo
+<release>-alloy
+<release>-minio
+```
+
+Grafana provisions these datasources automatically:
+
+- Prometheus-compatible Mimir at `<release>-mimir:<port>/prometheus`
+- Loki at `<release>-loki:<port>`
+- Tempo at `<release>-tempo:<port>`
+
+Alloy collects node metrics and annotated pod metrics, tails Kubernetes pod
+logs, and accepts OTLP over gRPC (`4317`) and HTTP (`4318`). It forwards those
+signals to Mimir, Loki, and Tempo respectively.
+
+## Ingress
+
+Grafana is available at `grafana.pcs.ui`. MinIO's console is available at
+`minio.pcs.ui` when the MinIO ingress is enabled.
+
+The Loki, Mimir, Tempo, and Alloy services are ClusterIP services and are not
+exposed through Ingress by default.
+
+## Storage
+
+The default `longhorn` storage class provisions `5Gi` for MinIO, Loki, Mimir,
+Tempo, and each PostgreSQL instance. Adjust the component-specific values in
+`values.yaml` for a different cluster or workload.
+
+MinIO is configured as a single replica and is intended for development or lab
+use, not highly available production object storage.
+
+## Install and validate
+
+Render and lint the chart before installation:
+
+```bash
+helm dependency update .
+helm lint . --strict
+helm template monitoring-stack . --namespace monitoring > rendered.yaml
+```
+
+Install or upgrade it with:
+
+```bash
+helm upgrade --install monitoring-stack . \
+  --namespace monitoring \
+  --create-namespace
+```
+
+Useful checks after installation:
+
+```bash
+kubectl get pods,svc,ingress -n monitoring
+kubectl get statefulsets,daemonsets,deployments -n monitoring
+kubectl get pvc,jobs -n monitoring
+kubectl get cluster.postgresql.cnpg.io -n monitoring
+```
+
+The MinIO post-install hook creates the Loki and Mimir buckets. Ensure the Job
+completes before troubleshooting object-storage-backed components.
+
+## Configuration
+
+The main configuration sections in `values.yaml` are:
+
+- `minio`: image, credentials, persistence, resources, and ingress
+- `loki`: replicas, S3 bucket, persistence, and resources
+- `mimir`: replicas, S3 bucket, replication, persistence, and resources
+- `tempo`: replicas, retention, S3 bucket, persistence, and resources
+- `alloy`: image and resources
+- `database`: CloudNativePG cluster, credentials, storage, and resources
+- `grafana`: image, credentials, database, ingress, and resources
+
+Use a separate override file for credentials and environment-specific values:
+
+```bash
+helm upgrade --install monitoring-stack . \
+  --namespace monitoring \
+  --create-namespace \
+  --values values.local.yaml
+```
+
+## Known limitations
+
+- Default credentials are stored in the example values file and must be changed.
+- MinIO runs as one replica.
+- Alloy's log collection mounts `/var/log/pods` and `/var/lib/docker/containers`; verify these paths for the node runtime.
+- The bucket initialization Job currently creates Loki and Mimir buckets. Create the configured Tempo bucket separately before relying on Tempo object storage.
+- The chart expects the CloudNativePG operator and Nginx Ingress Controller to be installed separately.
+# Monitoring Stack
+
 This Helm chart deploys a lightweight monitoring stack for Kubernetes with:
 
 - Grafana for dashboards and visualization
