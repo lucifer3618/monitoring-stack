@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: "{{ .Release.Name }}-minio"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.minio.replicas | default 1 }}
+  serviceName: "{{ .Release.Name }}-minio-headless"
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: minio
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: minio
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      tolerations:
+        - key: "node.kubernetes.io/not-ready"
+          operator: "Exists"
+          effect: "NoExecute"
+          tolerationSeconds: {{ .Values.minio.tolerations.notReady | default 20 }}
+        - key: "node.kubernetes.io/unreachable"
+          operator: "Exists"
+          effect: "NoExecute"
+          tolerationSeconds: {{ .Values.minio.tolerations.unreachable | default 20 }}
+      containers:
+        - name: minio
+          image: "{{ .Values.minio.image.repository }}:{{ .Values.minio.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          args:
+            - server
+            - /data
+            - --console-address
+            - ":9001"
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-loki-secret"
+                  key: S3_ACCESS_KEY_ID
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-loki-secret"
+                  key: S3_SECRET_ACCESS_KEY
+          ports:
+            - name: api
+              containerPort: 9000
+            - name: console
+              containerPort: 9001
+          volumeMounts:
+            - name: minio-data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: minio-data
+      spec:
+        accessModes: 
+          - "ReadWriteOnce"
+        storageClassName: {{ .Values.minio.persistence.storageClassName | default "longhorn" }}
+        resources:
+          requests:
+            storage: {{ .Values.minio.persistence.size | default "5Gi" }}
