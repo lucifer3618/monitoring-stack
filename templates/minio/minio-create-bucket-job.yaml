@@ -54,4 +54,7 @@ spec:
               # 2. Mimir Storage Bucket
               mc mb --ignore-existing myminio/{{ .Values.mimir.s3.bucketName | default "mimir-data" }}
 
+              # 3. Tempo Storage Bucket
+              mc mb --ignore-existing myminio/{{ .Values.tempo.s3.bucketName | default "tempo-data" }}
+
               echo "Bucket initialization complete for Loki and Mimir."
