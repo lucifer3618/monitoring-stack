@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: "{{ .Release.Name }}-alloy"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: alloy
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: alloy
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: alloy
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccountName: "{{ .Release.Name }}-alloy"
+      containers:
+        - name: alloy
+          image: "{{ .Values.alloy.image.repository | default "grafana/alloy" }}:{{ .Values.alloy.image.tag | default "v1.0.0" }}"
+          imagePullPolicy: {{ .Values.alloy.image.pullPolicy | default "IfNotPresent" }}
+          args:
+            - "run"
+            - "/etc/alloy/config.alloy"
+            - "--server.http.listen-addr=0.0.0.0:12345"
+            - "--storage.path=/var/lib/alloy/data"
+          ports:
+            - name: http-internal
+              containerPort: 12345
+            - name: otlp-grpc
+              containerPort: 4317
+            - name: otlp-http
+              containerPort: 4318
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 12345
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 12345
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alloy
+            - name: varlogpods
+              mountPath: /var/log/pods
+              readOnly: true
+            - name: varlibdockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+          resources:
+            requests:
+              cpu: {{ .Values.alloy.resources.requests.cpu | default "100m" }}
+              memory: {{ .Values.alloy.resources.requests.memory | default "256Mi" }}
+            limits:
+              cpu: {{ .Values.alloy.resources.limits.cpu | default "500m" }}
+              memory: {{ .Values.alloy.resources.limits.memory | default "1Gi" }}
+      volumes:
+        - name: config
+          configMap:
+            name: "{{ .Release.Name }}-alloy-config"
+        - name: varlogpods
+          hostPath:
+            path: /var/log/pods
+        - name: varlibdockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
