@@ -37,22 +37,6 @@ spec:
               containerPort: 9095
             - name: memberlist
               containerPort: 7946
-          readinessProbe:
-            httpGet:
-              path: /ready
-              port: http
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 6
-          livenessProbe:
-            httpGet:
-              path: /ready
-              port: http
-            initialDelaySeconds: 30
-            periodSeconds: 20
-            timeoutSeconds: 5
-            failureThreshold: 3
           env:
             - name: S3_ACCESS_KEY_ID
               valueFrom:
@@ -76,6 +60,22 @@ spec:
             limits:
               cpu: {{ .Values.loki.resources.limits.cpu | default "500m" }}
               memory: {{ .Values.loki.resources.limits.memory | default "512Mi" }}
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
       volumes:
         - name: loki-config
           configMap:
@@ -84,6 +84,9 @@ spec:
   volumeClaimTemplates:
     - metadata:
         name: loki-storage
+        labels:
+          app.kubernetes.io/name: loki
+          app.kubernetes.io/instance: {{ .Release.Name }}
       spec:
         accessModes:
           - "ReadWriteOnce"
