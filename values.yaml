@@ -9,6 +9,13 @@ minio:
   persistence:
     size: "5Gi"
     storageClassName: "longhorn"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
   ingress:
     enabled: true
     host: "minio.pcs.ui"

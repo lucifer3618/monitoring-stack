@@ -7,7 +7,11 @@ metadata:
     app.kubernetes.io/name: minio
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
-  replicas: {{ .Values.minio.replicas | default 1 }}
+  {{- $minioReplicas := .Values.minio.replicas | default 1 | int }}
+  {{- if gt $minioReplicas 1 }}
+  {{- fail "minio.replicas must be 1 because this chart configures standalone MinIO" }}
+  {{- end }}
+  replicas: {{ $minioReplicas }}
   serviceName: "{{ .Release.Name }}-minio-headless"
   selector:
     matchLabels:
@@ -19,6 +23,9 @@ spec:
         app.kubernetes.io/name: minio
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       tolerations:
         - key: "node.kubernetes.io/not-ready"
           operator: "Exists"
@@ -32,6 +39,11 @@ spec:
         - name: minio
           image: "{{ .Values.minio.image.repository }}:{{ .Values.minio.image.tag }}"
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           args:
             - server
             - /data
@@ -53,6 +65,29 @@ spec:
               containerPort: 9000
             - name: console
               containerPort: 9001
+          readinessProbe:
+            httpGet:
+              path: /minio/health/ready
+              port: api
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /minio/health/live
+              port: api
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: {{ .Values.minio.resources.requests.cpu | default "100m" }}
+              memory: {{ .Values.minio.resources.requests.memory | default "256Mi" }}
+            limits:
+              cpu: {{ .Values.minio.resources.limits.cpu | default "500m" }}
+              memory: {{ .Values.minio.resources.limits.memory | default "1Gi" }}
           volumeMounts:
             - name: minio-data
               mountPath: /data

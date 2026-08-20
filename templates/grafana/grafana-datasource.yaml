@@ -13,7 +13,7 @@ data:
       - name: Loki
         type: loki
         access: proxy
-        url: http://{{ .Values.loki.serviceName | default "loki" }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.loki.servicePort | default "3100" }}
+        url: http://{{ .Release.Name }}-loki.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.loki.servicePort | default "3100" }}
         isDefault: true
         jsonData:
           maxLines: 1000

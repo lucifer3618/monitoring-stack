@@ -8,8 +8,10 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
   annotations:
     "helm.sh/hook": post-install,post-upgrade
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded,hook-failed
 spec:
+  activeDeadlineSeconds: 300
+  backoffLimit: 3
   template:
     metadata:
       labels:
@@ -36,11 +38,12 @@ spec:
             - /bin/sh
             - -c
             - |
+              set -eu
               # Wait until MinIO API responds
               until mc alias set myminio http://{{ .Release.Name }}-minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; do
                 echo "Waiting for MinIO S3 API..."
                 sleep 2
               done
               # Create bucket if it does not already exist
-              mc mb --ignore-existing myminio/{{ .Values.minio.defaultBucket | default "loki-data" }}
+              mc mb --ignore-existing myminio/{{ .Values.loki.s3.bucketName | default "loki-data" }}
               echo "Bucket initialization complete."
