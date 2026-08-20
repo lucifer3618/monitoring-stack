@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Service
+metadata:
+    name: "{{ .Release.Name }}-tempo-headless"
+    namespace: {{ .Release.Namespace }}
+    labels:
+        app.kubernetes.io/name: tempo
+        app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+    clusterIP: None
+    selector:
+        app.kubernetes.io/name: tempo
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        publishNotReadyAddresses: true
+    ports:
+      - name: http
+        port: {{ .Values.tempo.servicePort | default "3200" }}
+        targetPort: {{ .Values.tempo.servicePort | default "3200" }}
+      - name: grpc
+        port: 9095
+        targetPort: 9095
+      - name: memberlist
+        port: 7946
+        targetPort: 7946

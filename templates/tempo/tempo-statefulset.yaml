@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: "{{ .Release.Name }}-tempo"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: tempo
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.tempo.replicas | default 1 }}
+  serviceName: "{{ .Release.Name }}-tempo-headless"
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tempo
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: tempo
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      securityContext:
+        fsGroup: 10001
+        runAsUser: 10001
+        runAsNonRoot: true
+      containers:
+        - name: tempo
+          image: "grafana/tempo:{{ .Values.tempo.image.tag | default "2.4.1" }}"
+          imagePullPolicy: {{ .Values.tempo.image.pullPolicy | default "IfNotPresent" }}
+          args:
+            - "-config.file=/etc/tempo/tempo.yaml"
+            - "-config.expand-env=true"
+          ports:
+            - name: http
+              containerPort: {{ .Values.tempo.servicePort | default 3200 }}
+            - name: grpc
+              containerPort: 9095
+            - name: memberlist
+              containerPort: 7946
+            - name: otlp-grpc
+              containerPort: 4317
+            - name: otlp-http
+              containerPort: 4318
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-tempo-secret"
+                  key: S3_ACCESS_KEY_ID
+            - name: S3_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-tempo-secret"
+                  key: S3_SECRET_ACCESS_KEY
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 45
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: tempo-config
+              mountPath: /etc/tempo
+            - name: tempo-storage
+              mountPath: /var/tempo
+          resources:
+            requests:
+              cpu: {{ .Values.tempo.resources.requests.cpu | default "200m" }}
+              memory: {{ .Values.tempo.resources.requests.memory | default "512Mi" }}
+            limits:
+              cpu: {{ .Values.tempo.resources.limits.cpu | default "1000m" }}
+              memory: {{ .Values.tempo.resources.limits.memory | default "2Gi" }}
+      volumes:
+        - name: tempo-config
+          configMap:
+            name: "{{ .Release.Name }}-tempo-config"
+
+  volumeClaimTemplates:
+    - metadata:
+        name: tempo-storage
+        labels:
+          app.kubernetes.io/name: tempo
+          app.kubernetes.io/instance: {{ .Release.Name }}
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: {{ .Values.tempo.storage.size | default "5Gi" }}
+        storageClassName: {{ .Values.tempo.storage.className | default "longhorn" }}

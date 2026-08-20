@@ -1,3 +1,6 @@
+#----------------------------------------------------
+#                     MINIO
+#----------------------------------------------------
 minio:
   image:
     repository: "minio/minio"
@@ -23,6 +26,9 @@ minio:
     host: "minio.pcs.ui"
     className: "nginx"
 
+#----------------------------------------------------
+#                        LOKI
+#----------------------------------------------------
 loki:
   replicas: 3
   servicePort: 3100
@@ -42,6 +48,10 @@ loki:
     limits:
       cpu: "500m"
       memory: "512Mi"
+
+#----------------------------------------------------
+#                      MIMIR
+#----------------------------------------------------
 mimir:
   replicas: 2
   servicePort: 9009
@@ -69,6 +79,37 @@ mimir:
       cpu: "500m"
       memory: "512Mi"
 
+#----------------------------------------------------
+#                      TEMPO
+#----------------------------------------------------
+tempo:
+  replicas: 2
+  servicePort: 3200
+  retention: "48h"
+  multitenancy:
+    enabled: false
+  image:
+    tag: "2.0.0"
+    pullPolicy: "IfNotPresent"
+  s3:
+    bucketName: "tempo-data"
+    accessKeyId: "admin"
+    secretAccessKey: "60241594"
+  storage:
+    size: "5Gi"
+    className: "longhorn"
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "512Mi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+  
+
+#----------------------------------------------------
+#                  GRAFANA DATABASE
+#----------------------------------------------------
 database:
   clusterName: "grafana-db-cluster"
   name: "grafana"
@@ -86,6 +127,9 @@ database:
       cpu: "500m"
   affinityType: "preferred" 
 
+#----------------------------------------------------
+#                      GRAFANA
+#----------------------------------------------------
 grafana:
   replicas: 1
   service:

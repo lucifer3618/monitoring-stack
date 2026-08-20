@@ -36,3 +36,32 @@ data:
         editable: false
         jsonData:
           maxLines: 1000
+          derivedFields:
+            - datasourceUid: tempo
+              matcherRegex: "(?:traceID|trace_id)=(\\w+)"
+              name: TraceID
+              url: "$${__value.raw}"
+
+      # ---------------------------
+      # 3. Tempo Traces
+      # ---------------------------
+      - name: Tempo
+        type: tempo
+        uid: tempo
+        access: proxy
+        url: http://{{ .Release.Name }}-tempo.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.tempo.servicePort | default "3200" }}
+        isDefault: false
+        editable: false
+        jsonData:
+          httpMethod: GET
+          tracesToLogsV2:
+            datasourceUid: "loki"
+            spanStartTimeShift: "-1m"
+            spanEndTimeShift: "1m"
+            filterByTraceID: true
+            filterBySpanID: true
+          tracesToMetrics:
+            datasourceUid: "prometheus"
+            tags: [{ key: "service.name", value: "service" }]
+          serviceMap:
+            datasourceUid: "prometheus"

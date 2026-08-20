@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+    name: "{{ .Release.Name }}-tempo"
+    namespace: {{ .Release.Namespace }}
+    labels:
+        app.kubernetes.io/name: tempo
+        app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: tempo
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: http
+      port: {{ .Values.tempo.servicePort | default "3200" }}
+      targetPort: {{ .Values.tempo.servicePort | default "3200" }}
+    - name: otlp-grpc
+      port: 4317
+      targetPort: otlp-grpc
+    - name: otlp-http
+      port: 4318
+      targetPort: otlp-http
