@@ -25,12 +25,37 @@ minio:
 
 loki:
   replicas: 3
-  serviceName: "loki"
   servicePort: 3100
   image:
     tag: "3.0.0"
   s3:
     bucketName: "loki-data"
+    accessKeyId: "admin"
+    secretAccessKey: "60241594"
+  pvc:
+    storageClassName: "longhorn"
+    size: "5Gi"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+mimir:
+  replicas: 2
+  servicePort: 9009
+  multitenancy:
+    enabled: false
+  ingester:
+    replicationFactor: 2
+  storeGateway:
+    replicationFactor: 2
+  image:
+    tag: "2.0.0"
+    pullPolicy: "IfNotPresent"
+  s3:
+    bucketName: "mimir-data"
     accessKeyId: "admin"
     secretAccessKey: "60241594"
   pvc:

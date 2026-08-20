@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: "{{ .Release.Name }}-mimir"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: mimir
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.mimir.replicas | default 1 }}
+  serviceName: "{{ .Release.Name }}-mimir-headless"
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mimir
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mimir
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      securityContext:
+        fsGroup: 10001
+        runAsUser: 10001
+        runAsNonRoot: true
+      containers:
+        - name: mimir
+          image: "grafana/mimir:{{ .Values.mimir.image.tag}}"
+          imagePullPolicy: {{ .Values.mimir.image.pullPolicy | default "IfNotPresent" }}
+          args:
+            - "-config.file=/etc/mimir/mimir.yaml"
+            - "-config.expand-env=true"
+          ports:
+            - name: http
+              containerPort: {{ .Values.mimir.servicePort | default "9009" }}
+            - name: grpc
+              containerPort: 9095
+            - name: memberlist
+              containerPort: 7946
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-mimir-secret"
+                  key: S3_ACCESS_KEY_ID
+            - name: S3_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-mimir-secret"
+                  key: S3_SECRET_ACCESS_KEY
+          volumeMounts:
+            - name: mimir-config
+              mountPath: /etc/mimir
+            - name: mimir-storage
+              mountPath: /var/mimir
+          resources:
+            requests:
+              cpu: {{ .Values.mimir.resources.requests.cpu | default "200m" }}
+              memory: {{ .Values.mimir.resources.requests.memory | default "512Mi" }}
+            limits:
+              cpu: {{ .Values.mimir.resources.limits.cpu | default "1000m" }}
+              memory: {{ .Values.mimir.resources.limits.memory | default "2Gi" }}
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+      volumes:
+        - name: mimir-config
+          configMap:
+            name: "{{ .Release.Name }}-mimir-config"
+      
+  volumeClaimTemplates:
+    - metadata:
+        name: mimir-storage
+        labels:
+          app.kubernetes.io/name: mimir
+          app.kubernetes.io/instance: {{ .Release.Name }}
+      spec:
+        accessModes: 
+          - "ReadWriteOnce"
+        storageClassName: {{ .Values.mimir.pvc.storageClassName | default "longhorn" }}
+        resources:
+          requests:
+            storage: {{ .Values.mimir.pvc.size | default "5Gi" }}
+            

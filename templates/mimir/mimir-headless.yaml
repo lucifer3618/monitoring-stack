@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Service
+metadata:
+    name: "{{ .Release.Name }}-mimir-headless"
+    namespace: {{ .Release.Namespace }}
+    labels:
+        app.kubernetes.io/name: mimir
+        app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+    clusterIP: None
+    selector:
+        app.kubernetes.io/name: mimir
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        publishNotReadyAddresses: true
+    ports:
+        - name: http
+          port: 9009
+          targetPort: 9009
+        - name: grpc
+          port: 9095
+          targetPort: 9095
+        - name: memberlist
+          port: 7946
+          targetPort: 7946

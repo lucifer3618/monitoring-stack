@@ -10,10 +10,29 @@ data:
   datasource.yaml: |
     apiVersion: 1
     datasources:
+      # ---------------------------
+      # 1. Prometheus / Mimir
+      # ---------------------------
+      - name: Prometheus
+        type: prometheus
+        uid: prometheus
+        access: proxy
+        url: http://{{ .Release.Name }}-mimir.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.mimir.servicePort | default "9009" }}/prometheus
+        isDefault: true
+        editable: false
+        jsonData:
+          httpMethod: POST
+          timeInterval: 15s
+
+      # ---------------------------
+      # 2. Loki Logs
+      # ---------------------------
       - name: Loki
         type: loki
+        uid: loki
         access: proxy
         url: http://{{ .Release.Name }}-loki.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.loki.servicePort | default "3100" }}
-        isDefault: true
+        isDefault: false
+        editable: false
         jsonData:
           maxLines: 1000
