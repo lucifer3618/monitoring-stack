@@ -13,8 +13,8 @@ spec:
     app.kubernetes.io/instance: {{ .Release.Name }}
   ports:
     - name: http
-      port: 3100
-      targetPort: 3100
+      port: {{ .Values.loki.servicePort | default "3100" }}
+      targetPort: {{ .Values.loki.servicePort | default "3100" }}
     - name: grpc
       port: 9095
       targetPort: 9095
