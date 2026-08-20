@@ -12,6 +12,8 @@ metadata:
     nginx.ingress.kubernetes.io/session-cookie-name: "grafana_stick"
     nginx.ingress.kubernetes.io/session-cookie-path: "/"
     nginx.ingress.kubernetes.io/session-cookie-hash: "sha1"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
 
     # Disable HTTPS redirect (equivalent to router.tls: "false")
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
