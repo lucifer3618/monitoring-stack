@@ -15,6 +15,9 @@ data:
       grpc_listen_port: 9095
       log_level: info
 
+    # Enables search API and TraceQL endpoints
+    search_enabled: true
+
     distributor:
       receivers:
         otlp:
@@ -39,6 +42,12 @@ data:
         block_retention: {{ .Values.tempo.retention | default "48h" | quote }}
         compacted_block_retention: 1h
 
+    query_frontend:
+      search:
+        max_duration: 0
+      trace_by_id:
+        query_timeout: 10s
+
     storage:
       trace:
         backend: s3
@@ -53,3 +62,5 @@ data:
           path: /var/tempo/wal
         local:
           path: /var/tempo/blocks
+        search:
+          chunk_size_bytes: 1048576
