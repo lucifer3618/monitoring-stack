@@ -1,3 +1,8 @@
+minio:
+  persistence:
+    size: "20Gi"
+    storageClassName: "longhorn"
+
 loki:
   replicas: 3
   serviceName: "loki"

@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: "{{ .Release.Namespace }}-loki"
+  name: "{{ .Release.Name }}-loki"
   namespace: {{ .Release.Namespace }}
   labels:
     app: loki
