@@ -1,0 +1,480 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema#",
+    "title": "LGTM Stack Values Schema",
+    "type": "object",
+    "properties": {
+        "tls": {
+            "type": "object",
+            "description": "TLS secret and certificate management settings",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Enable TLS encryption for ingresses"
+                },
+                "autoGenerateSecret": {
+                    "type": "boolean",
+                    "description": "Create Kubernetes TLS secret automatically from cert and key values"
+                },
+                "secretName": {
+                    "type": "string",
+                    "description": "Name of the Kubernetes TLS secret"
+                },
+                "cert": {
+                    "type": "string",
+                    "description": "PEM formatted public certificate chain"
+                },
+                "key": {
+                    "type": "string",
+                    "description": "PEM formatted private key"
+                }
+            }
+        },
+        "minio": {
+            "type": "object",
+            "description": "MinIO object storage configuration",
+            "properties": {
+                "replicas": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Replica count for MinIO"
+                },
+                "accessKeyId": {
+                    "type": "string",
+                    "description": "MinIO root / admin username"
+                },
+                "secretAccessKey": {
+                    "type": "string",
+                    "description": "MinIO root / admin password"
+                },
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "repository": {
+                            "type": "string"
+                        },
+                        "tag": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "tolerations": {
+                    "type": "object",
+                    "properties": {
+                        "notReady": {
+                            "type": "integer"
+                        },
+                        "unreachable": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "persistence": {
+                    "type": "object",
+                    "properties": {
+                        "size": {
+                            "type": "string",
+                            "pattern": "^[0-9]+(Gi|Mi|Ti)$"
+                        },
+                        "storageClassName": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "resources": {
+                    "$ref": "#/definitions/resourceRequirements"
+                },
+                "ingress": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "host": {
+                            "type": "string"
+                        },
+                        "className": {
+                            "type": "string"
+                        },
+                        "tls": {
+                            "$ref": "#/definitions/ingressTls"
+                        }
+                    }
+                }
+            }
+        },
+        "loki": {
+            "type": "object",
+            "description": "Grafana Loki log aggregation engine settings",
+            "properties": {
+                "replicas": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "servicePort": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                },
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "tag": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "s3": {
+                    "$ref": "#/definitions/s3BucketConfig"
+                },
+                "pvc": {
+                    "type": "object",
+                    "properties": {
+                        "storageClassName": {
+                            "type": "string"
+                        },
+                        "size": {
+                            "type": "string",
+                            "pattern": "^[0-9]+(Gi|Mi|Ti)$"
+                        }
+                    }
+                },
+                "resources": {
+                    "$ref": "#/definitions/resourceRequirements"
+                }
+            }
+        },
+        "mimir": {
+            "type": "object",
+            "description": "Grafana Mimir long-term metric storage settings",
+            "properties": {
+                "replicas": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "servicePort": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                },
+                "multitenancy": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        }
+                    }
+                },
+                "ingester": {
+                    "type": "object",
+                    "properties": {
+                        "replicationFactor": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                },
+                "storeGateway": {
+                    "type": "object",
+                    "properties": {
+                        "replicationFactor": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                },
+                "image": {
+                    "$ref": "#/definitions/imageConfig"
+                },
+                "s3": {
+                    "$ref": "#/definitions/s3BucketConfig"
+                },
+                "pvc": {
+                    "type": "object",
+                    "properties": {
+                        "storageClassName": {
+                            "type": "string"
+                        },
+                        "size": {
+                            "type": "string",
+                            "pattern": "^[0-9]+(Gi|Mi|Ti)$"
+                        }
+                    }
+                },
+                "resources": {
+                    "$ref": "#/definitions/resourceRequirements"
+                }
+            }
+        },
+        "tempo": {
+            "type": "object",
+            "description": "Grafana Tempo distributed tracing backend settings",
+            "properties": {
+                "replicas": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "servicePort": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                },
+                "retention": {
+                    "type": "string"
+                },
+                "multitenancy": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        }
+                    }
+                },
+                "image": {
+                    "$ref": "#/definitions/imageConfig"
+                },
+                "s3": {
+                    "$ref": "#/definitions/s3BucketConfig"
+                },
+                "storage": {
+                    "type": "object",
+                    "properties": {
+                        "className": {
+                            "type": "string"
+                        },
+                        "size": {
+                            "type": "string",
+                            "pattern": "^[0-9]+(Gi|Mi|Ti)$"
+                        }
+                    }
+                },
+                "resources": {
+                    "$ref": "#/definitions/resourceRequirements"
+                }
+            }
+        },
+        "alloy": {
+            "type": "object",
+            "description": "Grafana Alloy collector daemonset configuration",
+            "properties": {
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "repository": {
+                            "type": "string"
+                        },
+                        "tag": {
+                            "type": "string"
+                        },
+                        "pullPolicy": {
+                            "type": "string",
+                            "enum": [
+                                "Always",
+                                "IfNotPresent",
+                                "Never"
+                            ]
+                        }
+                    }
+                },
+                "resources": {
+                    "$ref": "#/definitions/resourceRequirements"
+                }
+            }
+        },
+        "database": {
+            "type": "object",
+            "description": "PostgreSQL database backend for Grafana",
+            "properties": {
+                "clusterName": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "user": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "instances": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "tolerationSeconds": {
+                    "type": "integer"
+                },
+                "storageSize": {
+                    "type": "string",
+                    "pattern": "^[0-9]+(Gi|Mi|Ti)$"
+                },
+                "storageClassName": {
+                    "type": "string"
+                },
+                "affinityType": {
+                    "type": "string",
+                    "enum": [
+                        "preferred",
+                        "required"
+                    ]
+                },
+                "resources": {
+                    "$ref": "#/definitions/resourceRequirements"
+                }
+            }
+        },
+        "grafana": {
+            "type": "object",
+            "description": "Grafana UI dashboard configuration",
+            "properties": {
+                "replicas": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "service": {
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "enum": [
+                                "ClusterIP",
+                                "NodePort",
+                                "LoadBalancer"
+                            ]
+                        }
+                    }
+                },
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "repository": {
+                            "type": "string"
+                        },
+                        "tag": {
+                            "type": "string"
+                        },
+                        "pullPolicy": {
+                            "type": "string",
+                            "enum": [
+                                "Always",
+                                "IfNotPresent",
+                                "Never"
+                            ]
+                        }
+                    }
+                },
+                "adminUser": {
+                    "type": "string"
+                },
+                "adminPassword": {
+                    "type": "string"
+                },
+                "database": {
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "enum": [
+                                "postgres",
+                                "mysql",
+                                "sqlite3"
+                            ]
+                        },
+                        "sslMode": {
+                            "type": "string",
+                            "enum": [
+                                "disable",
+                                "require",
+                                "verify-ca",
+                                "verify-full"
+                            ]
+                        }
+                    }
+                },
+                "ingress": {
+                    "type": "object",
+                    "properties": {
+                        "host": {
+                            "type": "string"
+                        },
+                        "tls": {
+                            "$ref": "#/definitions/ingressTls"
+                        }
+                    }
+                },
+                "resources": {
+                    "$ref": "#/definitions/resourceRequirements"
+                }
+            }
+        }
+    },
+    "definitions": {
+        "resourceRequirements": {
+            "type": "object",
+            "properties": {
+                "requests": {
+                    "type": "object",
+                    "properties": {
+                        "cpu": {
+                            "type": "string"
+                        },
+                        "memory": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "limits": {
+                    "type": "object",
+                    "properties": {
+                        "cpu": {
+                            "type": "string"
+                        },
+                        "memory": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "imageConfig": {
+            "type": "object",
+            "properties": {
+                "tag": {
+                    "type": "string"
+                },
+                "pullPolicy": {
+                    "type": "string",
+                    "enum": [
+                        "Always",
+                        "IfNotPresent",
+                        "Never"
+                    ]
+                }
+            }
+        },
+        "s3BucketConfig": {
+            "type": "object",
+            "properties": {
+                "bucketName": {
+                    "type": "string"
+                },
+                "accessKeyId": {
+                    "type": "string"
+                },
+                "secretAccessKey": {
+                    "type": "string"
+                }
+            }
+        },
+        "ingressTls": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "secretName": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}
