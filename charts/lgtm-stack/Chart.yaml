@@ -2,7 +2,7 @@ apiVersion: v2
 name: lgtm-stack
 description: A complete Kubernetes observability stack with Grafana, Mimir, Loki, Tempo, Alloy, and MinIO
 type: application
-version: 0.1.1
+version: 0.1.2
 appVersion: "1.16.0"
 keywords:
   - monitoring
@@ -19,7 +19,7 @@ sources:
 maintainers:
   - name: Chathura Udayanga
     email: chathux3618@gmail.com
-icon: https://raw.githubusercontent.com/grafana/grafana/main/public/img/grafana_icon.svg
+icon: https://lucifer3618.github.io/lgtm-stack/assets/logo.svg
 annotations:
   artifacthub.io/changes: |
     - kind: added
