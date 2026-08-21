@@ -27,6 +27,57 @@ entries:
           url: https://github.com/lucifer3618/lgtm-stack/issues
     apiVersion: v2
     appVersion: 1.16.0
+    created: "2026-08-21T14:58:32.95839295Z"
+    description: A complete Kubernetes observability stack with Grafana, Mimir, Loki,
+      Tempo, Alloy, and MinIO
+    digest: 40b433d840672d89cf708854296cc5ae5c10dd806c7eda0f7fcbff062cbd86fc
+    home: https://github.com/lucifer3618/lgtm-stack
+    icon: https://lucifer3618.github.io/lgtm-stack/assets/logo.svg
+    keywords:
+    - monitoring
+    - observability
+    - grafana
+    - loki
+    - mimir
+    - tempo
+    - alloy
+    - prometheus
+    maintainers:
+    - email: chathux3618@gmail.com
+      name: Chathura Udayanga
+    name: lgtm-stack
+    sources:
+    - https://github.com/lucifer3618/lgtm-stack
+    type: application
+    urls:
+    - https://github.com/lucifer3618/lgtm-stack/releases/download/lgtm-stack-0.1.2/lgtm-stack-0.1.2.tgz
+    version: 0.1.2
+  - annotations:
+      artifacthub.io/category: monitoring-logging
+      artifacthub.io/changes: |
+        - kind: added
+          description: Initial release of lgtm-stack with Grafana, Mimir, Loki, Tempo, Alloy, and MinIO
+      artifacthub.io/images: |
+        - name: grafana
+          image: grafana/grafana:13.1.0
+        - name: mimir
+          image: grafana/mimir:3.2.0
+        - name: loki
+          image: grafana/loki:3.7.6
+        - name: tempo
+          image: grafana/tempo:2.10.8
+        - name: alloy
+          image: grafana/alloy:v1.18.1
+        - name: minio
+          image: minio/minio:RELEASE.2024-01-18T22-51-28Z
+      artifacthub.io/license: Apache-2.0
+      artifacthub.io/links: |
+        - name: source
+          url: https://github.com/lucifer3618/lgtm-stack
+        - name: issues
+          url: https://github.com/lucifer3618/lgtm-stack/issues
+    apiVersion: v2
+    appVersion: 1.16.0
     created: "2026-08-21T14:32:21.695564112Z"
     description: A complete Kubernetes observability stack with Grafana, Mimir, Loki,
       Tempo, Alloy, and MinIO
@@ -103,4 +154,4 @@ entries:
     urls:
     - https://github.com/lucifer3618/lgtm-stack/releases/download/lgtm-stack-0.1.0/lgtm-stack-0.1.0.tgz
     version: 0.1.0
-generated: "2026-08-21T14:32:21.695578839Z"
+generated: "2026-08-21T14:58:32.958406304Z"
