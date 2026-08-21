@@ -1,8 +1,9 @@
-# LGTM-Stack Helm Chart
+# LGTM Stack Helm Chart
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/lucifer3618/lgtm-stack/blob/main/LICENSE)
 [![Kubernetes](https://img.shields.io/badge/kubernetes-%3E%3D1.24-brightgreen.svg)](https://kubernetes.io/)
 [![Helm](https://img.shields.io/badge/helm-%3E%3D3.8-informational.svg)](https://helm.sh/)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/lgtm-stack)](https://artifacthub.io/packages/helm/lgtm-stack/lgtm-stack)
 
 A production-ready, cloud-native observability stack for Kubernetes packaged as a single unified Helm chart. It brings together metrics, logs, distributed tracing, continuous telemetry collection, dashboards, database persistence, and local S3-compatible object storage.
 
@@ -138,21 +139,18 @@ Grafana is provisioned with out-of-the-box dashboards mounted via ConfigMaps fro
 
 ## Quick Start
 
-### 1. Add and Inspect the Chart
+### 1. Add the Helm Repository
 
 ```bash
-# Lint the chart
-helm lint .
-
-# Preview template rendering
-helm template test-release . -f values.yaml
+helm repo add lucifer3618 https://lucifer3618.github.io/lgtm-stack/
+helm repo update
 ```
 
 ### 2. Install the Chart
 
 ```bash
 # Create namespace and install
-helm install monitoring-stack . \
+helm install lgtm-stack lucifer3618/lgtm-stack \
   --namespace monitoring \
   --create-namespace
 ```
@@ -266,7 +264,7 @@ The following table lists the configurable parameters in `values.yaml`:
 For production or shared environments:
 1. Provide custom values via an external secrets file or override parameters using `--set`:
    ```bash
-   helm upgrade --install monitoring-stack . \
+   helm upgrade --install lgtm-stack lucifer3618/lgtm-stack \
      -n monitoring \
      -f values.production.yaml
    ```
