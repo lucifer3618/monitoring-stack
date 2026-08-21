@@ -18,9 +18,24 @@ spec:
         app.kubernetes.io/name: grafana
         app.kubernetes.io/instance: {{ .Release.Name }}
       annotations:
-        # Automatically restart pod if datasources configmap changes
+        # Automatically restart pod if datasources, or dashboards configmaps changes
+        checksum/dashboards-provider: {{ include (print $.Template.BasePath "/grafana/grafana-dashboards-provider.yaml") . | sha256sum }}
         checksum/datasources: {{ include (print $.Template.BasePath "/grafana/grafana-datasource.yaml") . | sha256sum }}
     spec:
+      # Wait for CloudNativePG database service to be ready before starting Grafana
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for PostgreSQL ({{ .Values.database.clusterName }}-rw:5432) to be ready..."
+              until nc -z -w 2 {{ .Values.database.clusterName }}-rw.{{ .Release.Namespace }}.svc.cluster.local 5432; do
+                echo "PostgreSQL is not ready yet. Sleeping 2 seconds..."
+                sleep 2
+              done
+              echo "PostgreSQL is ready! Starting Grafana..."
       containers:
         - name: grafana
           image: "{{ .Values.grafana.image.repository }}:{{ .Values.grafana.image.tag }}"
@@ -108,6 +123,12 @@ spec:
               mountPath: /var/lib/grafana/plugins
             - name: data-volume
               mountPath: /var/lib/grafana
+            # Mount dashboard provider definition
+            - name: dashboards-provider-volume
+              mountPath: /etc/grafana/provisioning/dashboards
+            # Mount the actual dashboard JSON files
+            - name: default-dashboards-volume
+              mountPath: /var/lib/grafana-dashboards
           
           resources:
             requests:
@@ -126,3 +147,11 @@ spec:
           emptyDir: {}
         - name: data-volume
           emptyDir: {}
+        # Dashboard provider ConfigMap
+        - name: dashboards-provider-volume
+          configMap:
+            name: "{{ .Release.Name }}-grafana-dashboards-provider"
+        # JSON files ConfigMap
+        - name: default-dashboards-volume
+          configMap:
+            name: "{{ .Release.Name }}-grafana-default-dashboards"
