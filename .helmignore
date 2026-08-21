@@ -21,3 +21,9 @@
 .idea/
 *.tmproj
 .vscode/
+# Certificates, secrets, and kubeconfigs
+*.key
+*.crt
+*.kubeconfig
+artifacthub-repo.yml
+

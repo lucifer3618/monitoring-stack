@@ -1,347 +1,279 @@
-# Monitoring Stack
+# LGTM-Stack Helm Chart
 
-This Helm chart deploys a lab-oriented observability stack for Kubernetes:
-- Grafana for dashboards and visualization
-- Mimir for metrics storage
-- Loki for logs
-- Tempo for distributed traces
-- Alloy as a node-level telemetry collector
-- MinIO as S3-compatible storage for Mimir, Loki, and Tempo
-- CloudNativePG for Grafana's PostgreSQL database
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Kubernetes](https://img.shields.io/badge/kubernetes-%3E%3D1.24-brightgreen.svg)](https://kubernetes.io/)
+[![Helm](https://img.shields.io/badge/helm-%3E%3D3.8-informational.svg)](https://helm.sh/)
 
-The chart uses Nginx Ingress and Longhorn storage. It creates a CloudNativePG
-`Cluster` resource, but it does not install the CloudNativePG operator.
+A production-ready, cloud-native observability stack for Kubernetes packaged as a single unified Helm chart. It brings together metrics, logs, distributed tracing, continuous telemetry collection, dashboards, database persistence, and local S3-compatible object storage.
 
-## Prerequisites
-The target cluster must already provide:
+---
 
-- Helm and Kubernetes access
-- An Nginx Ingress Controller
-- A `longhorn` StorageClass, or matching storage class overrides
-- The CloudNativePG operator and CRDs
+## Stack Components
 
-For local access, resolve the configured hosts to the Ingress address:
-```text
-grafana.pcs.ui
-minio.pcs.ui
-```
+| Component | Role | Kubernetes Resource | Default Image | Ports |
+| :--- | :--- | :--- | :--- | :--- |
+| **Grafana** | Visualization & Dashboards | `Deployment` (1 replica) | `grafana/grafana:13.1.0` | `3000` (HTTP) |
+| **Mimir** | Long-term Prometheus Metrics | `StatefulSet` (2 replicas) | `grafana/mimir:3.2.0` | `9009` (HTTP) |
+| **Loki** | Distributed Log Aggregation | `StatefulSet` (2 replicas) | `grafana/loki:3.7.6` | `3100` (HTTP), `9095` (gRPC), `7946` (Memberlist) |
+| **Tempo** | Distributed Tracing Backend | `StatefulSet` (2 replicas) | `grafana/tempo:2.10.8` | `3200` (HTTP), `4317` (OTLP gRPC), `4318` (OTLP HTTP) |
+| **Alloy** | Telemetry Collector & Agent | `DaemonSet` (1 per node) | `grafana/alloy:v1.18.1` | `12345` (Admin), `4317` (OTLP gRPC), `4318` (OTLP HTTP) |
+| **MinIO** | S3-compatible Object Storage | `StatefulSet` (1 replica) | `minio/minio:RELEASE.2024-01-18T22-51-28Z` | `9000` (S3 API), `9001` (Console) |
+| **PostgreSQL** | Grafana Session & State DB | `CloudNativePG Cluster` (2 instances) | Managed by CNPG | `5432` (PostgreSQL) |
 
-The default credentials in `values.yaml` are for local or lab use only. Override
-all passwords and access keys before using this chart in a shared environment.
+---
 
-## Architecture
+## Architecture & Data Flow
 
 ```mermaid
-flowchart LR
-  Client[Applications] --> Alloy[Alloy DaemonSet]
-  Alloy --> Mimir[Mimir metrics]
-  Alloy --> Loki[Loki logs]
-  Alloy --> Tempo[Tempo traces]
-  Mimir --> MinIO[MinIO S3]
-  Loki --> MinIO
-  Tempo --> MinIO
-  Browser[Browser] --> Nginx[Nginx Ingress]
-  Nginx --> Grafana[Grafana]
-  Grafana --> Mimir
-  Grafana --> Loki
-  Grafana --> Tempo
-  Grafana --> CNPG[CloudNativePG PostgreSQL]
+flowchart TD
+    subgraph Ingestion["1. Telemetry Ingestion (Nodes & Workloads)"]
+        Apps["Kubernetes Applications / Pods"]
+        Node["Host Nodes (kubelet, cAdvisor, kernel logs)"]
+        Apps -- "OTLP Traces (4317/4318)\nPod Logs" --> Alloy["Grafana Alloy (DaemonSet)"]
+        Node -- "Node Metrics\nk8s Workload Metrics" --> Alloy
+    end
+
+    subgraph Storage["2. Storage & Backends"]
+        Alloy -- "Prometheus Remote Write" --> Mimir["Mimir (StatefulSet)"]
+        Alloy -- "Push API" --> Loki["Loki (StatefulSet)"]
+        Alloy -- "OTLP gRPC / HTTP" --> Tempo["Tempo (StatefulSet)"]
+        
+        Mimir -- "Chunks & Blocks" --> MinIO[("MinIO S3\n(mimir-data)")]
+        Loki -- "Chunks & Indexes" --> MinIO[("MinIO S3\n(loki-data)")]
+        Tempo -- "Trace Blocks" --> MinIO[("MinIO S3\n(tempo-data)")]
+    end
+
+    subgraph Persistence["3. Database Persistence"]
+        CNPG[("CloudNativePG PostgreSQL\nCluster (2 instances)")]
+    end
+
+    subgraph Visualization["4. Presentation & Routing"]
+        Ingress["Nginx Ingress Controller\n(TLS Termination)"]
+        Grafana["Grafana (Deployment)"]
+        
+        Ingress -->|"grafana.local"| Grafana
+        Ingress -->|"minio.local"| MinIO
+        
+        Grafana -->|"Mimir Datasource"| Mimir
+        Grafana -->|"Loki Datasource"| Loki
+        Grafana -->|"Tempo Datasource"| Tempo
+        Grafana -->|"State & Dashboards"| CNPG
+    end
 ```
 
-## Components and defaults
+---
 
-| Component | Kubernetes resource | Default replicas | Internal ports |
-| --- | --- | ---: | --- |
-| Grafana | Deployment | 1 | `3000` |
-| Mimir | StatefulSet | 2 | `9009` |
-| Loki | StatefulSet | 3 | `3100`, `9095` |
-| Tempo | StatefulSet | 2 | `3200`, `4317`, `4318` |
-| Alloy | DaemonSet | One per node | `12345`, `4317`, `4318` |
-| MinIO | StatefulSet | 1 | `9000`, `9001` |
-| PostgreSQL | CloudNativePG Cluster | 3 | `5432` |
+## Dependencies & Prerequisites
 
-All component service names are release-scoped:
+Before deploying this chart, ensure the following prerequisites are met in your Kubernetes cluster:
+
+1. **Kubernetes Version**: `v1.24+`
+2. **Helm Version**: `v3.8+`
+3. **CloudNativePG Operator**: 
+   The chart provisions a CloudNativePG `Cluster` resource for PostgreSQL persistence, but requires the CloudNativePG operator and its CRDs to be pre-installed in your cluster:
+   ```bash
+   kubectl apply --server-side -f https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/main/releases/cnpg-1.22.1.yaml
+   ```
+4. **Nginx Ingress Controller**: 
+   Required for external access and host-based routing (`grafana.local`, `minio.local`).
+5. **StorageClass**: 
+   Defaults to `longhorn-1replica`. You can override this with any existing StorageClass (e.g. `gp3`, `standard`, `local-path`) via `values.yaml`.
+6. **Local DNS Resolution**:
+   For local/lab testing, map the configured ingress hosts to your Ingress controller's external IP in `/etc/hosts` (Linux/macOS) or `C:\Windows\System32\drivers\etc\hosts` (Windows):
+   ```text
+   <INGRESS_CONTROLLER_IP>  grafana.local minio.local
+   ```
+
+---
+
+## Running Process & Lifecycle
+
+When installing or upgrading the Helm chart, the following sequential process takes place:
 
 ```text
-<release>-grafana
-<release>-mimir
-<release>-loki
-<release>-tempo
-<release>-alloy
-<release>-minio
+[1. Chart Installation]
+   │
+   ├──► [Helm Hook Job: minio-create-bucket]
+   │       └── Initializes MinIO and automatically provisions:
+   │             - loki-data
+   │             - mimir-data
+   │             - tempo-data
+   │
+   ├──► [CloudNativePG Cluster Resource]
+   │       └── CNPG Operator reconciles PostgreSQL instances and creates internal RW/RO services.
+   │
+   ├──► [StatefulSets Provisioning]
+   │       └── MinIO, Mimir, Loki, and Tempo claim PVC storage and connect to object storage.
+   │
+   ├──► [Alloy DaemonSet Deployment]
+   │       └── Runs on every node:
+   │             - Tails Kubernetes pod logs from /var/log/pods
+   │             - Discovers annotated pods and Prometheus endpoints
+   │             - Listens on 4317/4318 for app traces and forwards to Tempo
+   │
+   ├──► [Grafana Deployment & ConfigMaps]
+   │       └── Auto-configures:
+   │             - Mimir, Loki, Tempo datasources
+   │             - Pre-loaded Dashboards from dashboards/ folder
+   │             - Connection to CloudNativePG PostgreSQL
+   │
+   └──► [Ingress & TLS Secrets]
+           └── Exposes Grafana and MinIO Console via Nginx Ingress.
 ```
 
-Grafana provisions these datasources automatically:
+---
 
-- Prometheus-compatible Mimir at `<release>-mimir:<port>/prometheus`
-- Loki at `<release>-loki:<port>`
-- Tempo at `<release>-tempo:<port>`
+## Pre-Packaged Dashboards
 
-Alloy collects node metrics and annotated pod metrics, tails Kubernetes pod
-logs, and accepts OTLP over gRPC (`4317`) and HTTP (`4318`). It forwards those
-signals to Mimir, Loki, and Tempo respectively.
+Grafana is provisioned with out-of-the-box dashboards mounted via ConfigMaps from the `dashboards/` directory:
 
-## Ingress
+1. **Platform Observability Overview (`dashboards/platform-observability-overview-v1.json`)**: High-level platform health, aggregate ingestion rates, and service availability.
+2. **Kubernetes Cluster Overview (`dashboards/k8s-cluster-overview-v1.json`)**: Cluster-wide CPU, memory, filesystem, and network utilization.
+3. **Kubernetes Node Infrastructure (`dashboards/k8s-node-infra-v1.json`)**: Detailed per-node compute, disk I/O, pressure stalls, and container runtimes.
+4. **Kubernetes Workload Health (`dashboards/k8s-workload-health-v1.json`)**: Pod restarts, OOMKilled events, CPU/Memory throttling, and pod status.
+5. **Kubernetes Capacity Planning (`dashboards/k8s-capacity-planning-v1.json`)**: Cluster allocation ratios, resource requests vs usage trends, and headroom estimation.
+6. **Loki Logs Operations (`dashboards/loki-logs-operations-v1.json`)**: Operational log stream exploration, error frequency, and volume analytics.
 
-Grafana is available at `grafana.pcs.ui`. MinIO's console is available at
-`minio.pcs.ui` when the MinIO ingress is enabled.
+---
 
-The Loki, Mimir, Tempo, and Alloy services are ClusterIP services and are not
-exposed through Ingress by default.
+## Quick Start
 
-## Storage
-
-The default `longhorn` storage class provisions `5Gi` for MinIO, Loki, Mimir,
-Tempo, and each PostgreSQL instance. Adjust the component-specific values in
-`values.yaml` for a different cluster or workload.
-
-MinIO is configured as a single replica and is intended for development or lab
-use, not highly available production object storage.
-
-## Install and validate
-
-Render and lint the chart before installation:
+### 1. Add and Inspect the Chart
 
 ```bash
-helm dependency update .
-helm lint . --strict
-helm template monitoring-stack . --namespace monitoring > rendered.yaml
+# Lint the chart
+helm lint .
+
+# Preview template rendering
+helm template test-release . -f values.yaml
 ```
 
-Install or upgrade it with:
+### 2. Install the Chart
 
 ```bash
-helm upgrade --install monitoring-stack . \
+# Create namespace and install
+helm install monitoring-stack . \
   --namespace monitoring \
   --create-namespace
 ```
 
-Useful checks after installation:
+### 3. Verify Deployment
 
 ```bash
-kubectl get pods,svc,ingress -n monitoring
-kubectl get statefulsets,daemonsets,deployments -n monitoring
-kubectl get pvc,jobs -n monitoring
+# Check all running pods
+kubectl get pods -n monitoring
+
+# Check services and ingress
+kubectl get svc,ingress -n monitoring
+
+# Check CloudNativePG cluster status
 kubectl get cluster.postgresql.cnpg.io -n monitoring
 ```
 
-The MinIO post-install hook creates the Loki and Mimir buckets. Ensure the Job
-completes before troubleshooting object-storage-backed components.
+---
 
-## Configuration
+## Configuration Reference
 
-The main configuration sections in `values.yaml` are:
+The following table lists the configurable parameters in `values.yaml`:
 
-- `minio`: image, credentials, persistence, resources, and ingress
-- `loki`: replicas, S3 bucket, persistence, and resources
-- `mimir`: replicas, S3 bucket, replication, persistence, and resources
-- `tempo`: replicas, retention, S3 bucket, persistence, and resources
-- `alloy`: image and resources
-- `database`: CloudNativePG cluster, credentials, storage, and resources
-- `grafana`: image, credentials, database, ingress, and resources
+### Common & TLS Settings
 
-Use a separate override file for credentials and environment-specific values:
+| Parameter | Description | Default |
+| :--- | :--- | :--- |
+| `tls.enabled` | Enable unified TLS secret generation | `true` |
+| `tls.autoGenerateSecret` | Automatically create Secret from `cert` and `key` | `true` |
+| `tls.secretName` | Name of the Kubernetes TLS secret | `"monitoring-tls-secret"` |
+| `tls.cert` | Public certificate chain in PEM format | `""` |
+| `tls.key` | Private key in PEM format | `""` |
 
-```bash
-helm upgrade --install monitoring-stack . \
-  --namespace monitoring \
-  --create-namespace \
-  --values values.local.yaml
-```
+### MinIO Object Storage
 
-## Known limitations
+| Parameter | Description | Default |
+| :--- | :--- | :--- |
+| `minio.image.repository` | MinIO container image | `"minio/minio"` |
+| `minio.image.tag` | MinIO image tag | `"RELEASE.2024-01-18T22-51-28Z"` |
+| `minio.replicas` | Number of MinIO replicas | `1` |
+| `minio.accessKeyId` | Root admin access key ID | `"admin"` |
+| `minio.secretAccessKey` | Root admin secret access key | `"admin123"` |
+| `minio.persistence.storageClassName` | StorageClass for MinIO data | `"longhorn-1replica"` |
+| `minio.persistence.size` | PVC size for MinIO | `"1Gi"` |
+| `minio.ingress.enabled` | Enable Ingress for MinIO Web Console | `true` |
+| `minio.ingress.host` | Hostname for MinIO Console | `"minio.local"` |
 
-- Default credentials are stored in the example values file and must be changed.
-- MinIO runs as one replica.
-- Alloy's log collection mounts `/var/log/pods` and `/var/lib/docker/containers`; verify these paths for the node runtime.
-- The bucket initialization Job currently creates Loki and Mimir buckets. Create the configured Tempo bucket separately before relying on Tempo object storage.
-- The chart expects the CloudNativePG operator and Nginx Ingress Controller to be installed separately.
-# Monitoring Stack
+### Loki (Logs)
 
-This Helm chart deploys a lightweight monitoring stack for Kubernetes with:
+| Parameter | Description | Default |
+| :--- | :--- | :--- |
+| `loki.image.repository` | Loki container image | `"grafana/loki"` |
+| `loki.image.tag` | Loki image tag | `"3.7.6"` |
+| `loki.replicas` | Number of Loki cluster replicas | `2` |
+| `loki.s3.bucketName` | S3 bucket for Loki chunks/indexes | `"loki-data"` |
+| `loki.pvc.storageClassName` | StorageClass for Loki PVC | `"longhorn-1replica"` |
+| `loki.pvc.size` | Storage volume size per replica | `"1Gi"` |
 
-- Grafana for dashboards and visualization
-- Loki for logs
-- CloudNativePG for the Grafana database
-- S3-compatible object storage for Loki index and chunks
-- Traefik ingress for Grafana access
+### Mimir (Metrics)
 
-The stack is designed for a local or lab Kubernetes environment and is configured for simple internal routing and local service discovery.
+| Parameter | Description | Default |
+| :--- | :--- | :--- |
+| `mimir.image.repository` | Mimir container image | `"grafana/mimir"` |
+| `mimir.image.tag` | Mimir image tag | `"3.2.0"` |
+| `mimir.replicas` | Number of Mimir cluster replicas | `2` |
+| `mimir.s3.bucketName` | S3 bucket for metric blocks | `"mimir-data"` |
+| `mimir.pvc.storageClassName` | StorageClass for Mimir PVC | `"longhorn-1replica"` |
+| `mimir.pvc.size` | Storage volume size per replica | `"1Gi"` |
 
-## Architecture
+### Tempo (Traces)
 
-```mermaid
-flowchart LR
-    Browser[Browser / User] --> Ingress[Nginx Ingress\nHost: grafana.pcs.ui]
-    Ingress --> GrafanaSvc[Service: monitoring-stack-grafana\nClusterIP: 3000]
-    GrafanaSvc --> GrafanaPod[Deployment: monitoring-stack-grafana\n2 replicas]
+| Parameter | Description | Default |
+| :--- | :--- | :--- |
+| `tempo.image.repository` | Tempo container image | `"grafana/tempo"` |
+| `tempo.image.tag` | Tempo image tag | `"2.10.8"` |
+| `tempo.replicas` | Number of Tempo cluster replicas | `2` |
+| `tempo.s3.bucketName` | S3 bucket for trace data | `"tempo-data"` |
+| `tempo.storage.className` | StorageClass for Tempo PVC | `"longhorn-1replica"` |
+| `tempo.storage.size` | Storage volume size per replica | `"1Gi"` |
 
-    GrafanaPod --> PGSvc[Service: grafana-db-cluster-rw\n5432]
-    PGSvc --> PGCluster[CloudNativePG Cluster\n3 instances]
+### Alloy (Collector)
 
-    LokiPod[Loki StatefulSet\n3 replicas] --> LokiSvc[Service: monitoring-stack-loki\nClusterIP: 3100]
-    LokiPod --> Headless[Service: loki-headless\nclusterIP: None]
-    LokiPod --> S3[(MinIO\nmonitoring-stack-minio:9000)]
+| Parameter | Description | Default |
+| :--- | :--- | :--- |
+| `alloy.image.repository` | Alloy container image repository | `"grafana/alloy"` |
+| `alloy.image.tag` | Alloy image tag | `"v1.18.1"` |
+| `alloy.image.pullPolicy` | Image pull policy | `"IfNotPresent"` |
 
-    GrafanaPod --> Datasource[ConfigMap datasource\nLoki endpoint]
-    LokiPod --> Config[ConfigMap: loki-configmap]
-``` 
+### Grafana & Database
 
-## Components
+| Parameter | Description | Default |
+| :--- | :--- | :--- |
+| `grafana.replicas` | Grafana deployment replicas | `1` |
+| `grafana.image.repository` | Grafana container image | `"grafana/grafana"` |
+| `grafana.image.tag` | Grafana container image tag | `"13.1.0"` |
+| `grafana.adminUser` | Initial admin account username | `"admin"` |
+| `grafana.adminPassword` | Initial admin account password | `"admin123"` |
+| `grafana.ingress.host` | Ingress hostname for Grafana | `"grafana.local"` |
+| `database.clusterName` | CloudNativePG cluster name | `"grafana-db-cluster"` |
+| `database.instances` | PostgreSQL replica instances | `2` |
+| `database.storageSize` | Storage volume size per PostgreSQL node | `"1Gi"` |
+| `database.storageClassName` | StorageClass for PostgreSQL | `"longhorn-1replica"` |
 
-### 1. Grafana
+---
 
-The Grafana deployment is created from the chart and exposes a web UI through Nginx.
+## Security & Best Practices
 
-- Deployment: `monitoring-stack-grafana`
-- Replicas: 2
-- Service: `monitoring-stack-grafana`
-- Port: `3000`
-- Ingress host: `grafana.pcs.ui`
-- Default credentials: user `admin`, password `admin123`
+> [!WARNING]
+> The default credentials in `values.yaml` (`admin123`) are provided for testing and demonstration only.
 
-Grafana is configured to connect to the PostgreSQL database via the CloudNativePG RW service and the Loki datasource for logs.
+For production or shared environments:
+1. Provide custom values via an external secrets file or override parameters using `--set`:
+   ```bash
+   helm upgrade --install monitoring-stack . \
+     -n monitoring \
+     -f values.production.yaml
+   ```
+2. Disable `tls.autoGenerateSecret` and reference a cert-manager managed TLS secret using `tls.secretName`.
 
-### 2. PostgreSQL / CloudNativePG
+---
 
-A PostgreSQL cluster is created with CloudNativePG for Grafana persistence.
+## License
 
-- Cluster name: `grafana-db-cluster`
-- Database: `grafana`
-- User: `grafana`
-- Secret: `monitoring-stack-grafana-db-credentials`
-- Instances: 3
-- Storage: `5Gi` using `longhorn`
-
-The database is exposed internally through the generated CNPG services:
-
-- `grafana-db-cluster-rw` for writes
-- `grafana-db-cluster-r`
-- `grafana-db-cluster-ro`
-
-### 3. Loki
-
-Loki is deployed as a StatefulSet with replication for log storage and clustering.
-
-- StatefulSet: `loki`
-- Replicas: 3
-- StatefulSet service name: `loki-headless`
-- Service: `monitoring-stack-loki` (ClusterIP)
-- Port: `3100` for HTTP, `9095` for gRPC
-- Memberlist port: `7946`
-
-The Loki config uses a `ConfigMap` and reads S3 credentials from a Kubernetes Secret. Loki writes data to an S3-compatible object store using the configured endpoint and bucket name.
-
-### 4. MinIO object storage
-
-Loki is configured to use the in-cluster MinIO service as its S3-compatible backend for logs.
-
-- Endpoint: `monitoring-stack-minio:9000`
-- Bucket: `loki-data`
-- Credentials are stored in the `monitoring-stack-loki-secret` Secret
-
-This provides persistent log storage outside the pod filesystem.
-
-### 5. Ingress and routing
-
-Grafana is exposed by Nginx through an Ingress resource.
-
-#### Route
-
-```text
-Browser --> grafana.pcs.ui --> Nginx Ingress --> Service: monitoring-stack-grafana --> Grafana Pod
-```
-
-This is configured in the chart with:
-
-- Ingress class: `nginx`
-- Host: `grafana.pcs.ui`
-- Path: `/`
-- Backend: `monitoring-stack-grafana:3000`
-
-Loki is exposed separately through its internal ClusterIP service at `monitoring-stack-loki:3100`.
-
-## Internal service flow
-
-### Grafana request flow
-
-```text
-HTTP request
-  -> Traefik ingress
-  -> monitoring-stack-grafana Service
-  -> Grafana Deployment pod
-  -> PostgreSQL Cluster (through grafana-db-cluster-rw)
-  -> Grafana database
-```
-
-### Loki log flow
-
-```text
-Application / logs
-  -> Loki pod (collector/ingester)
-  -> Loki config and storage settings
-  -> S3-compatible object store
-```
-
-### Grafana datasource flow
-
-Grafana uses a ConfigMap to configure a Loki datasource.
-
-```text
-Grafana UI
-  -> datasource config
-  -> Loki service
-  -> Loki HTTP endpoint: http://loki.<namespace>.svc.cluster.local:3100
-```
-
-## Helm values
-
-The chart is parameterized through the root `values.yaml` file.
-
-Key values include:
-
-- `loki.replicas`
-- `loki.serviceName`
-- `loki.servicePort`
-- `loki.s3.bucketName`
-- `database.clusterName`
-- `database.instances`
-- `database.storageSize`
-- `grafana.ingress.host`
-- `grafana.replicas`
-
-## Deployment
-
-Install or upgrade the stack with:
-
-```bash
-helm upgrade --install monitoring-stack . -n monitoring --create-namespace
-```
-
-Verify the resources:
-
-```bash
-kubectl get pods -n monitoring
-kubectl get svc -n monitoring
-kubectl get ingress -n monitoring
-kubectl get statefulset -n monitoring
-```
-
-## Notes
-
-- The Grafana app is served at `grafana.pcs.ui` through the Nginx ingress.
-- Loki is available internally at `monitoring-stack-loki:3100` and does not use the Grafana ingress path.
-- The database is internal to the cluster and is not exposed directly outside Kubernetes.
-- S3 credentials and database credentials are managed through Kubernetes Secrets.
-
-## Summary
-
-This stack provides a practical local observability environment:
-
-- Grafana for UI and dashboards
-- Loki for log aggregation
-- CNPG for Grafana persistence
-- S3-compatible storage for long-term log retention
-- Ingress-driven access for the Grafana frontend
-
-This gives a simple path from local development or lab deployment to a working monitoring environment with minimal operational overhead.
+This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
