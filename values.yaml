@@ -1,4 +1,65 @@
 #----------------------------------------------------
+#                     COMMON
+#----------------------------------------------------
+tls:
+  enabled: true
+  # If true, Helm creates the secret using cert/key below.
+  # If false, you can specify an existing secret name.
+  autoGenerateSecret: true
+  secretName: "monitoring-tls-secret"
+  cert: |
+    -----BEGIN CERTIFICATE-----
+    MIIDgjCCAmqgAwIBAgIUcNTzif/afrEFW4svNgGL0yOK8TowDQYJKoZIhvcNAQEL
+    BQAwLDEcMBoGA1UEAwwTZ3JhZmFuYS50ZXN0LnBjcy51aTEMMAoGA1UECgwDUENT
+    MB4XDTI2MDgyMTA3MDIyMVoXDTI3MDgyMTA3MDIyMVowLDEcMBoGA1UEAwwTZ3Jh
+    ZmFuYS50ZXN0LnBjcy51aTEMMAoGA1UECgwDUENTMIIBIjANBgkqhkiG9w0BAQEF
+    AAOCAQ8AMIIBCgKCAQEAznf3nXO8yxY6MHJPtBdbmiK9y8irUmcRYLZDoezD5Bie
+    pgQi+RpzZb8SbXjkzQi8nWK5jeSLDfaMQRDaAPrTgqfsa8z/7su2mUFl9n92Biff
+    wjpSHF8TlwOs/LW1arfNkXECgq8JzyzawSjgjqNJUcHZPLAj7GNUOeGg2MczIRq4
+    iwz37ZWTcRU4zVfLJScLF4U/xNiyfl0Bjh7LHDdMSbnvTYe4magTlaX1AtUA2eVw
+    eVEVT352hS/D7tC26ne3tnNb/NTcKqbkWGKAdQFf3DOCmbimrC0WvgPcTcFEyVQd
+    EppAtZCF1oamSWTP1/GHI7ZWfdmrB/Rs7ZZjWNz07wIDAQABo4GbMIGYMB0GA1Ud
+    DgQWBBSlLgn8SwXhixSA5xG5olvOLO19uDAfBgNVHSMEGDAWgBSlLgn8SwXhixSA
+    5xG5olvOLO19uDAPBgNVHRMBAf8EBTADAQH/MEUGA1UdEQQ+MDyCDG1pbmlvLnBj
+    cy51aYITZ3JhZmFuYS50ZXN0LnBjcy51aYIIKi5wY3MudWmCDSoudGVzdC5wY3Mu
+    dWkwDQYJKoZIhvcNAQELBQADggEBAMvBsia+e9vBTosdClK86IGJQiFDJLhjOdvh
+    wcB5XKxY0znktIFcHQ/CgXqpWzexzOuaHhgr2cZlp09Q4NBVoLW1vNqPTH/v1f+0
+    A/ROTChPVrb5dG88B0Lbl4uDnBAf4/wxQj7nzXyfgACeTHK2ktbm+0uUvuPgCQGM
+    eq9O+N0hRkkti9iklkp7xUSlJR91zdbS6tF0cTrbz9QC6fgYixoLQMQlCLN4+EuA
+    pm/DSmHNRCkEBej5sAHKnMRk8EpQ3hke2rSv7YBCliFI0ZI/YvxLA7SxWuT5Lhnn
+    mB496DdMiTE72F0pZf1u4BDHTItyZXJ+P/B7EvKGjU89UYfyKNM=
+    -----END CERTIFICATE-----
+  key: |
+    -----BEGIN PRIVATE KEY-----
+    MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDOd/edc7zLFjow
+    ck+0F1uaIr3LyKtSZxFgtkOh7MPkGJ6mBCL5GnNlvxJteOTNCLydYrmN5IsN9oxB
+    ENoA+tOCp+xrzP/uy7aZQWX2f3YGJ9/COlIcXxOXA6z8tbVqt82RcQKCrwnPLNrB
+    KOCOo0lRwdk8sCPsY1Q54aDYxzMhGriLDPftlZNxFTjNV8slJwsXhT/E2LJ+XQGO
+    HsscN0xJue9Nh7iZqBOVpfUC1QDZ5XB5URVPfnaFL8Pu0Lbqd7e2c1v81NwqpuRY
+    YoB1AV/cM4KZuKasLRa+A9xNwUTJVB0SmkC1kIXWhqZJZM/X8YcjtlZ92asH9Gzt
+    lmNY3PTvAgMBAAECggEAOf723hKJoJ5gwAUMIHFDONuzZo+6mA39kqX//3cLW4IS
+    5l1ZGZH1gkoWugtwcauXl7oIlzPwX362zPwX0JikWxoiTfGqnoA4jXoSUxhgpcAD
+    mYJaWD/Yt92/dMjx6cUxiD4vT1gtsDVQSVvbIBX73WxPQj3UCW2pVgzr6pih4xUm
+    Ph2cfDRx8t2T/E9r9FSJ+jXOgo283YOU44cWB5sgNHLrux3yx1KZTouAQpz9RINZ
+    0PrSsk51FJwOtwGbziXJ5TNyysC22o9cQuInng6J82QRqxgHEhwzfrWbSccNqxpI
+    onJDSxPDlo8sI3g9zd6XWVID6BKGL4wjae1NX+IDcQKBgQDpqyovX/xKEH+wKMk5
+    /7PxyJKub1t6JPrpttSrDx7ZmNK+nZSILrB4h7DpXY7UfN/lW3rLM2xwvTCrqyJp
+    hmgOYKQekPtKbt5foNxHpBV2CiMIZbqr4EGymq8AmD7QlmuDKlmlV2dp90m2sRs8
+    XiZ9I2pXccTggW5l/lyJ33xRFwKBgQDiM1bZt0pohd+Smem3/Wgb0KPgTW8ZdbtW
+    eSF4MXVJ6PGIr3tKfP+UQJs935RbGGLAm/jA78pxGELpN/sxSixkI0waqrL1BTD8
+    Do7EbovusFBK0n/q1I0ujvpwnJlIILhLaQaNTcrJmSPW3+Km9PSIQdT4N89zdR9Q
+    7b3w0fRx6QKBgQDgOF3PffSSgYh1Wn3VSLe8D/IorjSCXY/jyowB5Q1+UbYQMRfB
+    IcQ2tEYfeKZA4d7asFCBQkQRXomggSQRTGb3PObfadGoWADMlIgrupjZXtrFCRD6
+    MsP4BZReJrlH4L8j6vSAwwE53o/+Xa473EBkniJB7Kq1n513A4B60FfzWwKBgQDD
+    wGAZu1gGSkxnpxCuq/rLj2wyMXDC3LLJq7v+MvbohlF30zzkAnZ/SsXN7s2JY/oZ
+    6yCDf0B3TOKix1J3nlP6ON2kejKyfdKdXs/ISE6KukRR7AbNJzIip5Mtnye7Vq2G
+    fRYxdK/YdNGiI1AW4gc4X5g5UrsRlLsMIyHr5RYg+QKBgGIi8ANtVQDxNVocdqE7
+    bm3oCh9zChwF8PGkGWMsf69mAVJZm3HeeeE9AOdSNSnTzHbedGSG5NIELrrgEINV
+    vv+EwLKU9jXp6jWIsLGVUOvxNFkAxwcdXQ5dNM0aRlb0o507Vay1rQtOlqZMbP7Z
+    RvR7CEzmo0AvbdhN0IEO8P5j
+    -----END PRIVATE KEY-----
+
+#----------------------------------------------------
 #                     MINIO
 #----------------------------------------------------
 minio:
@@ -25,6 +86,9 @@ minio:
     enabled: true
     host: "minio.pcs.ui"
     className: "nginx"
+    tls:
+      enabled: true
+      secretName: "monitoring-tls-secret"
 
 #----------------------------------------------------
 #                        LOKI
@@ -89,7 +153,7 @@ tempo:
   multitenancy:
     enabled: false
   image:
-    tag: "2.0.0"
+    tag: "2.4.1"
     pullPolicy: "IfNotPresent"
   s3:
     bucketName: "tempo-data"
@@ -161,6 +225,9 @@ grafana:
     sslMode: "disable"
   ingress:
     host: "grafana.test.pcs.ui"
+    tls:
+      enabled: true
+      secretName: "monitoring-tls-secret"
   resources:
     requests:
       cpu: "100m"

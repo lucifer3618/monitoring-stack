@@ -13,10 +13,19 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
     nginx.ingress.kubernetes.io/websocket-services: "{{ .Release.Name }}-minio"
+
+    # HTTPS Redirect toggle based on TLS status
+    nginx.ingress.kubernetes.io/ssl-redirect: {{ .Values.minio.ingress.tls.enabled | default false | quote }}
 spec:
   ingressClassName: {{ .Values.minio.ingress.className | default "nginx" }}
+  {{- if .Values.minio.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.minio.ingress.host | default "minio.local" | quote }}
+      secretName: {{ .Values.minio.ingress.tls.secretName | default "monitoring-tls-secret" }}
+  {{- end }}
   rules:
-    - host: {{ .Values.minio.ingress.host | default "minio.local" }}
+    - host: {{ .Values.minio.ingress.host | default "minio.local" | quote }}
       http:
         paths:
           - path: /

@@ -15,12 +15,18 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
 
-    # Disable HTTPS redirect (equivalent to router.tls: "false")
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    # HTTPS Redirect toggle based on TLS status
+    nginx.ingress.kubernetes.io/ssl-redirect: {{ .Values.grafana.ingress.tls.enabled | default false | quote }}
 spec:
-  ingressClassName: nginx
+  ingressClassName: {{ .Values.grafana.ingress.className | default "nginx" }}
+  {{- if .Values.grafana.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.grafana.ingress.host | default "grafana.lab.local" | quote }}
+      secretName: {{ .Values.grafana.ingress.tls.secretName | default "monitoring-tls-secret" }}
+  {{- end }}
   rules:
-    - host: {{ .Values.grafana.ingress.host | default "grafana.lab.local" }}
+    - host: {{ .Values.grafana.ingress.host | default "grafana.lab.local" | quote }}
       http:
         paths:
           - path: /
