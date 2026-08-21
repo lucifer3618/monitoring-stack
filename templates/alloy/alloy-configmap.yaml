@@ -11,14 +11,83 @@ data:
     // ==========================================
     // 1. METRICS PIPELINE (Mimir)
     // ==========================================
+
+    // --- Host / Node Metrics (Node Exporter) ---
     prometheus.exporter.unix "node" { }
 
     prometheus.scrape "node_metrics" {
-      targets    = prometheus.exporter.unix.node.targets
-      forward_to = [prometheus.remote_write.mimir.receiver]
+      targets         = prometheus.exporter.unix.node.targets
+      forward_to      = [prometheus.remote_write.mimir.receiver]
       scrape_interval = "15s"
     }
 
+    // --- cAdvisor (Container CPU, Memory & Working Set) ---
+    discovery.kubernetes "nodes" {
+      role = "node"
+    }
+
+    discovery.relabel "cadvisor" {
+      targets = discovery.kubernetes.nodes.targets
+
+      rule {
+        action        = "keep"
+        source_labels = ["__meta_kubernetes_node_name"]
+        regex         = env("HOSTNAME")
+      }
+
+      rule {
+        target_label = "__metrics_path__"
+        replacement  = "/metrics/cadvisor"
+      }
+
+      rule {
+        target_label = "__scheme__"
+        replacement  = "https"
+      }
+    }
+
+    prometheus.scrape "cadvisor" {
+      targets           = discovery.relabel.cadvisor.output
+      forward_to        = [prometheus.remote_write.mimir.receiver]
+      scrape_interval   = "15s"
+      bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+      tls_config {
+        ca_file              = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+        insecure_skip_verify = true
+      }
+    }
+
+    // --- Kube-State-Metrics (Pod Phase, Status & Container Restarts) ---
+    discovery.kubernetes "ksm_services" {
+      role = "service"
+      namespaces {
+        names = ["monitoring", "kube-system", "{{ .Release.Namespace }}"]
+      }
+    }
+
+    discovery.relabel "ksm" {
+      targets = discovery.kubernetes.ksm_services.targets
+
+      rule {
+        action        = "keep"
+        source_labels = ["__meta_kubernetes_service_name"]
+        regex         = ".*kube-state-metrics.*"
+      }
+
+      rule {
+        action        = "keep"
+        source_labels = ["__meta_kubernetes_service_port_name"]
+        regex         = "http|http-metrics|metrics"
+      }
+    }
+
+    prometheus.scrape "kube_state_metrics" {
+      targets         = discovery.relabel.ksm.output
+      forward_to      = [prometheus.remote_write.mimir.receiver]
+      scrape_interval = "30s"
+    }
+
+    // --- Pod Annotation Scraping (prometheus.io/scrape: "true") ---
     discovery.kubernetes "pods" {
       role = "pod"
     }
@@ -68,11 +137,12 @@ data:
     }
 
     prometheus.scrape "k8s_pods" {
-      targets    = discovery.relabel.scrape_pods.output
-      forward_to = [prometheus.remote_write.mimir.receiver]
+      targets         = discovery.relabel.scrape_pods.output
+      forward_to      = [prometheus.remote_write.mimir.receiver]
       scrape_interval = "15s"
     }
 
+    // --- Mimir Remote Write Forwarder ---
     prometheus.remote_write "mimir" {
       endpoint {
         url = "http://{{ .Release.Name }}-mimir.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.mimir.servicePort | default "9009" }}/api/v1/push"
@@ -136,7 +206,7 @@ data:
     }
 
     // ==========================================
-    // 3. TRACES PIPELINE (Tempo)
+    // 3. TRACES & APP METRICS PIPELINE (Tempo & Mimir)
     // ==========================================
     otelcol.receiver.otlp "default" {
       grpc {
@@ -147,16 +217,19 @@ data:
       }
 
       output {
-        traces = [otelcol.processor.batch.default.input]
+        traces  = [otelcol.processor.batch.default.input]
+        metrics = [otelcol.processor.batch.default.input]
       }
     }
 
     otelcol.processor.batch "default" {
       output {
-        traces = [otelcol.exporter.otlp.tempo.input]
+        traces  = [otelcol.exporter.otlp.tempo.input]
+        metrics = [otelcol.exporter.prometheus.mimir.input]
       }
     }
 
+    // Export traces to Tempo
     otelcol.exporter.otlp "tempo" {
       client {
         endpoint = "{{ .Release.Name }}-tempo.{{ .Release.Namespace }}.svc.cluster.local:4317"
@@ -164,4 +237,9 @@ data:
           insecure = true
         }
       }
+    }
+
+    // Convert OTLP metrics to Prometheus format and forward to Mimir
+    otelcol.exporter.prometheus "mimir" {
+      forward_to = [prometheus.remote_write.mimir.receiver]
     }
