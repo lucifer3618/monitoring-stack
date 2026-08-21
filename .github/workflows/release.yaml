@@ -25,9 +25,16 @@ jobs:
         with:
           version: v3.14.0
 
+      - name: Import GPG Key
+        run: |
+          echo "${{ secrets.GPG_KEYRING_BASE64 }}" | base64 -d | gpg --dearmor > secring.gpg
+
       - name: Run Chart Releaser
         uses: helm/chart-releaser-action@v1.6.0
         with:
           charts_dir: charts
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          CR_KEYRING: secring.gpg
+          CR_KEY: "chathux3618@gmail.com"
+          CR_SIGN: "true"

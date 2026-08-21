@@ -2,7 +2,7 @@ apiVersion: v2
 name: lgtm-stack
 description: A complete Kubernetes observability stack with Grafana, Mimir, Loki, Tempo, Alloy, and MinIO
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "1.16.0"
 keywords:
   - monitoring
