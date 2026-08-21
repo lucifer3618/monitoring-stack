@@ -23,6 +23,7 @@ data:
         jsonData:
           httpMethod: POST
           timeInterval: 15s
+          manageAlerts: false
 
       # ---------------------------
       # 2. Loki Logs
@@ -36,11 +37,14 @@ data:
         editable: false
         jsonData:
           maxLines: 1000
+          httpHeaderName1: "X-Scope-OrgID"
           derivedFields:
             - datasourceUid: tempo
               matcherRegex: "(?:traceID|trace_id)=(\\w+)"
               name: TraceID
               url: "$${__value.raw}"
+        secureJsonData:
+          httpHeaderValue1: "1"  # Or "fake" if using standard microservices/loki defaults
 
       # ---------------------------
       # 3. Tempo Traces
@@ -49,19 +53,20 @@ data:
         type: tempo
         uid: tempo
         access: proxy
-        url: http://{{ .Release.Name }}-tempo.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.tempo.servicePort | default "3200" }}
-        isDefault: false
-        editable: false
+        url: http://{{ .Release.Name }}-tempo.{{ .Release.Namespace }}.svc.cluster.local:3200
         jsonData:
           httpMethod: GET
+          streamingEnabled: false
+          metricsSummary:
+            enabled: false
+          nodeGraph:
+            enabled: true
+          jsonData:
+            httpHeaderName1: "X-Scope-OrgID"
+          secureJsonData:
+            httpHeaderValue1: "1"  # Or "fake"
           tracesToLogsV2:
-            datasourceUid: "loki"
-            spanStartTimeShift: "-1m"
-            spanEndTimeShift: "1m"
-            filterByTraceID: true
-            filterBySpanID: true
-          tracesToMetrics:
-            datasourceUid: "prometheus"
-            tags: [{ key: "service.name", value: "service" }]
-          serviceMap:
-            datasourceUid: "prometheus"
+            datasourceUid: loki  # Matches lowercase 'uid: loki'
+            tags: ['job', 'instance', 'pod', 'namespace']
+            filterByTrace: true
+            filterBySpan: false

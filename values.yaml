@@ -97,7 +97,7 @@ loki:
   replicas: 2
   servicePort: 3100
   image:
-    tag: "3.0.0"
+    tag: "3.7.6"
   s3:
     bucketName: "loki-data"
     accessKeyId: "admin"
@@ -126,7 +126,7 @@ mimir:
   storeGateway:
     replicationFactor: 2
   image:
-    tag: "2.0.0"
+    tag: "3.2.0"
     pullPolicy: "IfNotPresent"
   s3:
     bucketName: "mimir-data"
@@ -153,7 +153,7 @@ tempo:
   multitenancy:
     enabled: false
   image:
-    tag: "2.4.1"
+    tag: "2.10.8"
     pullPolicy: "IfNotPresent"
   s3:
     bucketName: "tempo-data"
@@ -176,7 +176,7 @@ tempo:
 alloy:
   image:
     repository: "grafana/alloy"
-    tag: "v1.0.0"
+    tag: "v1.18.1"
     pullPolicy: "IfNotPresent"
   resources:
     requests:
@@ -195,7 +195,7 @@ database:
   name: "grafana"
   user: "grafana"
   password: "grafanadbpassword123"
-  instances: 3
+  instances: 2
   tolerationSeconds: 60
   storageSize: "1Gi"
   storageClassName: "longhorn-1replica"
@@ -230,8 +230,8 @@ grafana:
       secretName: "monitoring-tls-secret"
   resources:
     requests:
-      cpu: "100m"
-      memory: "128Mi"
-    limits:
-      cpu: "500m"
+      cpu: "250m"
       memory: "512Mi"
+    limits:
+      cpu: "1500m"
+      memory: "1Gi"
