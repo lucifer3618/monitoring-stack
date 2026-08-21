@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14171E"/>
+      <stop offset="100%" stop-color="#090B0E"/>
+    </linearGradient>
+
+    <!-- Top Tier: Grafana (Apex / Golden Orange) -->
+    <linearGradient id="grafanaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFA843"/>
+      <stop offset="100%" stop-color="#F46800"/>
+    </linearGradient>
+
+    <!-- 2nd Tier: Mimir (Metrics / Amber) -->
+    <linearGradient id="mimirGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+
+    <!-- 3rd Tier: Loki (Logs / Electric Cyan) -->
+    <linearGradient id="lokiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+
+    <!-- Base Tier: Tempo & Storage (Traces / Deep Violet) -->
+    <linearGradient id="tempoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C084FC"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+
+    <!-- Soft Drop Shadow for Stack Depth -->
+    <filter id="stackShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Dark Rounded Squircle Base -->
+  <rect x="20" y="20" width="472" height="472" rx="112" fill="url(#bg)" stroke="#222735" stroke-width="4"/>
+
+  <!-- Stack Layer 4: Base / Traces (Tempo Violet) -->
+  <g filter="url(#stackShadow)">
+    <path d="M 256 310 L 396 375 C 404 378, 404 388, 396 392 L 256 456 C 252 458, 246 458, 242 456 L 102 392 C 94 388, 94 378, 102 375 Z" fill="url(#tempoGrad)"/>
+    <path d="M 102 384 L 242 448 C 248 451, 254 451, 260 448 L 400 384 L 400 394 C 400 398, 396 402, 392 404 L 256 466 C 252 468, 246 468, 242 466 L 106 404 C 102 402, 98 398, 98 394 Z" fill="#5B21B6" opacity="0.9"/>
+  </g>
+
+  <!-- Stack Layer 3: Logs (Loki Cyan) -->
+  <g filter="url(#stackShadow)">
+    <path d="M 256 230 L 396 295 C 404 298, 404 308, 396 312 L 256 376 C 252 378, 246 378, 242 376 L 102 312 C 94 308, 94 298, 102 295 Z" fill="url(#lokiGrad)"/>
+    <path d="M 102 304 L 242 368 C 248 371, 254 371, 260 368 L 400 304 L 400 314 C 400 318, 396 322, 392 324 L 256 386 C 252 388, 246 388, 242 386 L 106 324 C 102 322, 98 318, 98 314 Z" fill="#0369A1" opacity="0.9"/>
+  </g>
+
+  <!-- Stack Layer 2: Metrics (Mimir Amber) -->
+  <g filter="url(#stackShadow)">
+    <path d="M 256 150 L 396 215 C 404 218, 404 228, 396 232 L 256 296 C 252 298, 246 298, 242 296 L 102 232 C 94 228, 94 218, 102 215 Z" fill="url(#mimirGrad)"/>
+    <path d="M 102 224 L 242 288 C 248 291, 254 291, 260 288 L 400 224 L 400 234 C 400 238, 396 242, 392 244 L 256 306 C 252 308, 246 308, 242 306 L 106 244 C 102 242, 98 238, 98 234 Z" fill="#B45309" opacity="0.9"/>
+  </g>
+
+  <!-- Stack Layer 1 (Top / Apex): Visualization (Grafana Orange) -->
+  <g filter="url(#stackShadow)">
+    <path d="M 256 70 L 396 135 C 404 138, 404 148, 396 152 L 256 216 C 252 218, 246 218, 242 216 L 102 152 C 94 148, 94 138, 102 135 Z" fill="url(#grafanaGrad)"/>
+    <path d="M 102 144 L 242 208 C 248 211, 254 211, 260 208 L 400 144 L 400 154 C 400 158, 396 162, 392 164 L 256 226 C 252 228, 246 228, 242 226 L 106 164 C 102 162, 98 158, 98 154 Z" fill="#C2410C" opacity="0.9"/>
+
+    <!-- Apex Telemetry Core Indicator -->
+    <ellipse cx="256" cy="142" rx="20" ry="10" fill="#FFFFFF" opacity="0.85"/>
+  </g>
+</svg>
